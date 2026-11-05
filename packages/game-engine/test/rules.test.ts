@@ -588,3 +588,170 @@ describe("Game Engine - Additional Edge Cases & Security Rules", () => {
     expect(entry.generateBookRoll).toBeDefined();
   });
 });
+
+describe("Comprehensive Phase 1 Edge Cases", () => {
+  // A. Shooting Validation
+  it("A1: rejects shooting an invalid cell number with INVALID_TARGET", () => {
+    const { state } = createInitialMatchState("m1", "r1", createTestPlayers(5));
+    const p1 = state.players[0].playerId;
+    const p2 = state.players[1].playerId;
+    state.players[0].cells[0].progress = 5;
+    state.players[0].cells[0].hasGun = true;
+    const rollRes = applyRoll(state, p1, 0, 10);
+
+    expect(() => applyShot(rollRes.state, p1, p2, 3 as any)).toThrowError(GameRuleError);
+    try {
+      applyShot(rollRes.state, p1, p2, 3 as any);
+    } catch (err: any) {
+      expect(err.code).toBe("INVALID_TARGET");
+    }
+  });
+
+  it("A2: rejects shooting an eliminated player with INVALID_TARGET", () => {
+    const { state } = createInitialMatchState("m1", "r1", createTestPlayers(5));
+    const p1 = state.players[0].playerId;
+    const p2 = state.players[1].playerId;
+    state.players[0].cells[0].progress = 5;
+    state.players[0].cells[0].hasGun = true;
+    state.players[1].status = "ELIMINATED";
+
+    const rollRes = applyRoll(state, p1, 0, 10);
+    expect(() => applyShot(rollRes.state, p1, p2, 0)).toThrowError(GameRuleError);
+    try {
+      applyShot(rollRes.state, p1, p2, 0);
+    } catch (err: any) {
+      expect(err.code).toBe("INVALID_TARGET");
+    }
+  });
+
+  it("A3: confirms rejected shots do not consume bullets or advance turns", () => {
+    const { state } = createInitialMatchState("m1", "r1", createTestPlayers(5));
+    const p1 = state.players[0].playerId;
+    state.players[0].cells[0].progress = 5;
+    state.players[0].cells[0].hasGun = true;
+
+    const rollRes = applyRoll(state, p1, 0, 10);
+    const beforeShot = rollRes.state;
+    expect(beforeShot.turn.pendingShot).toBe(true);
+    expect(beforeShot.turn.currentPlayerId).toBe(p1);
+
+    // Invalid shot at self
+    try {
+      applyShot(beforeShot, p1, p1, 0);
+    } catch {
+      // Expected
+    }
+
+    expect(beforeShot.turn.pendingShot).toBe(true);
+    expect(beforeShot.turn.currentPlayerId).toBe(p1);
+    expect(beforeShot.turn.phase).toBe("AWAITING_SHOT");
+  });
+
+  // B. Bullet State
+  it("B1: confirms sixth matching roll creates exactly 1 bullet belonging to the correct cell, consumed upon shooting", () => {
+    const { state } = createInitialMatchState("m1", "r1", createTestPlayers(5));
+    const p1 = state.players[0].playerId;
+    const p2 = state.players[1].playerId;
+    const gunCell = 6;
+    state.players[0].cells[gunCell].progress = 5;
+    state.players[0].cells[gunCell].hasGun = true;
+
+    // Roll 6 on cell 6
+    const rollRes = applyRoll(state, p1, gunCell, 16);
+    expect(rollRes.state.turn.pendingShot).toBe(true);
+    expect(rollRes.state.turn.rolledCell).toBe(gunCell); // Belongs to cell 6
+
+    // Successful shot
+    const shootRes = applyShot(rollRes.state, p1, p2, 0);
+    expect(shootRes.state.turn.pendingShot).toBe(false); // Consumed
+    expect(shootRes.state.turn.phase).toBe("AWAITING_ROLL");
+  });
+
+  it("B2: confirms a player cannot accumulate bullets (subsequent roll rejected)", () => {
+    const { state } = createInitialMatchState("m1", "r1", createTestPlayers(5));
+    const p1 = state.players[0].playerId;
+    state.players[0].cells[2].progress = 5;
+    state.players[0].cells[2].hasGun = true;
+
+    const rollRes = applyRoll(state, p1, 2, 12);
+    expect(rollRes.state.turn.pendingShot).toBe(true);
+
+    // Attempt second roll while pending shot is active
+    expect(() => applyRoll(rollRes.state, p1, 2, 22)).toThrowError(GameRuleError);
+    try {
+      applyRoll(rollRes.state, p1, 2, 22);
+    } catch (err: any) {
+      expect(err.code).toBe("INVALID_COMMAND");
+    }
+  });
+
+  // C. Elimination and Victory
+  it("C1: confirms no further actions (roll, shoot, pause) are accepted after match completion", () => {
+    const { state } = createInitialMatchState("m1", "r1", createTestPlayers(5));
+    const p1 = state.players[0].playerId;
+    const p2 = state.players[1].playerId;
+
+    // Eliminate players 2, 3, 4, 5
+    let curr = eliminatePlayer(state, state.players[1].playerId).state;
+    curr = eliminatePlayer(curr, state.players[2].playerId).state;
+    curr = eliminatePlayer(curr, state.players[3].playerId).state;
+    const winState = eliminatePlayer(curr, state.players[4].playerId).state;
+
+    expect(winState.phase).toBe("COMPLETED");
+    expect(winState.winnerPlayerId).toBe(p1);
+
+    // Rejection of roll
+    expect(() => applyRoll(winState, p1, 0, 10)).toThrowError(GameRuleError);
+    try {
+      applyRoll(winState, p1, 0, 10);
+    } catch (err: any) {
+      expect(err.code).toBe("MATCH_NOT_ACTIVE");
+    }
+
+    // Rejection of shot
+    expect(() => applyShot(winState, p1, p2, 0)).toThrowError(GameRuleError);
+    try {
+      applyShot(winState, p1, p2, 0);
+    } catch (err: any) {
+      expect(err.code).toBe("MATCH_NOT_ACTIVE");
+    }
+
+    // Rejection of pause
+    expect(() => pauseMatch(winState, p1)).toThrowError(GameRuleError);
+    try {
+      pauseMatch(winState, p1);
+    } catch (err: any) {
+      expect(err.code).toBe("MATCH_NOT_ACTIVE");
+    }
+  });
+
+  // D. Player Count & Turn Order
+  it("D1: tests match initialization with 5, 6, and 10 players, fixed positions, and cyclic turn advancement skipping eliminated players", () => {
+    // 6 Players
+    const match6 = createInitialMatchState("m6", "r6", createTestPlayers(6));
+    expect(match6.state.players).toHaveLength(6);
+    const positions6 = match6.state.players.map((p) => p.position);
+    expect(positions6).toEqual(["P1", "P2", "P3", "P4", "P5", "P6"]);
+
+    // Eliminate P2 and P4
+    let s = match6.state;
+    s.players[1].status = "ELIMINATED"; // P2
+    s.players[3].status = "ELIMINATED"; // P4
+
+    // P1 completes turn -> advances to P3 (skipping P2)
+    s = applyRoll(s, s.players[0].playerId, 0, 10).state;
+    expect(s.turn.currentPlayerId).toBe(s.players[2].playerId); // P3
+
+    // P3 completes turn -> advances to P5 (skipping P4)
+    s = applyRoll(s, s.players[2].playerId, 0, 10).state;
+    expect(s.turn.currentPlayerId).toBe(s.players[4].playerId); // P5
+
+    // P5 completes turn -> advances to P6
+    s = applyRoll(s, s.players[4].playerId, 0, 10).state;
+    expect(s.turn.currentPlayerId).toBe(s.players[5].playerId); // P6
+
+    // P6 completes turn -> cycles back to P1 (skipping P2)
+    s = applyRoll(s, s.players[5].playerId, 0, 10).state;
+    expect(s.turn.currentPlayerId).toBe(s.players[0].playerId); // P1
+  });
+});

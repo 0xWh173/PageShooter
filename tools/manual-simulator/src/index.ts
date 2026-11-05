@@ -74,9 +74,9 @@ export function renderCellStatus(cell: CellState): string {
 
 export function renderBattlefield(session: SimulatorSession): void {
   const state = session.state;
-  console.log("\n" + "=".repeat(73));
+  console.log("\n" + "=".repeat(83));
   console.log("   PAGE SHOOTER — ANCIENT MAGICAL BOOK SIMULATOR (PHASE 1)");
-  console.log("=".repeat(73));
+  console.log("=".repeat(83));
 
   const currentTurnPlayer = state.players.find((p) => p.playerId === state.turn.currentPlayerId);
   const currentPos = currentTurnPlayer ? currentTurnPlayer.position : "None";
@@ -89,16 +89,16 @@ export function renderBattlefield(session: SimulatorSession): void {
   } else {
     console.log(`Current Turn: ${currentPos} (${currentName}) | Turn #${state.turn.turnNumber} | Phase: ${state.turn.phase}`);
     if (state.turn.phase === "AWAITING_SHOT") {
-      console.log(`⚡ [MANDATORY SHOT REQUIRED] Gun cell ${state.turn.rolledCell} fired a bullet!`);
+      console.log(`⚡ [MANDATORY SHOT REQUIRED] Gun cell ${state.turn.rolledCell} fired a bullet! (Bullets: 1)`);
       console.log(`   Use: shoot <TargetPosition> <CellNumber>  (e.g., shoot P2 4)`);
     } else {
       console.log(`🎲 Awaiting Roll. Use: roll [0|2|4|6|8]  (e.g., 'roll' for random, 'roll 4' for testing override)`);
     }
   }
 
-  console.log("-".repeat(73));
-  console.log("| Pos  | Player      | Status     |  0   |  2   |  4   |  6   |  8   | Kills |");
-  console.log("| ---- | ----------- | ---------- | ---- | ---- | ---- | ---- | ---- | ----- |");
+  console.log("-".repeat(83));
+  console.log("| Pos  | Player      | Status     | Bullets |  0   |  2   |  4   |  6   |  8   | Kills |");
+  console.log("| ---- | ----------- | ---------- | ------- | ---- | ---- | ---- | ---- | ---- | ----- |");
 
   // Always display sorted strictly by numeric position P1..Pn
   const sortedPlayers = [...state.players].sort((a, b) => {
@@ -112,6 +112,7 @@ export function renderBattlefield(session: SimulatorSession): void {
     const posMarker = (isCurrent ? `${p.position}*` : p.position).padEnd(4, " ");
     const statusStr = p.status.padEnd(10, " ");
     const nameStr = p.username.padEnd(11, " ");
+    const bulletStr = isCurrent && state.turn.pendingShot ? ` 1 (c${state.turn.rolledCell})` : "   0   ";
     const c0 = renderCellStatus(p.cells[0]);
     const c2 = renderCellStatus(p.cells[2]);
     const c4 = renderCellStatus(p.cells[4]);
@@ -119,11 +120,11 @@ export function renderBattlefield(session: SimulatorSession): void {
     const c8 = renderCellStatus(p.cells[8]);
     const killsStr = String(p.kills).padStart(3, " ");
 
-    console.log(`| ${posMarker} | ${nameStr} | ${statusStr} |${c0}|${c2}|${c4}|${c6}|${c8}|  ${killsStr}  |`);
+    console.log(`| ${posMarker} | ${nameStr} | ${statusStr} | ${bulletStr} |${c0}|${c2}|${c4}|${c6}|${c8}|  ${killsStr}  |`);
   }
-  console.log("-".repeat(73));
+  console.log("-".repeat(83));
   console.log("Legend: — = Empty | X = Destroyed | Face/Body/Legs/Arms/Gun | * = Active Turn");
-  console.log("=".repeat(73) + "\n");
+  console.log("=".repeat(83) + "\n");
 }
 
 export function resolvePlayerTarget(state: MatchState, inputStr: string): string | null {
