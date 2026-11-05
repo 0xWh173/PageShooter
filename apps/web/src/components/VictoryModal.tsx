@@ -26,40 +26,33 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   if (!winner) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#462B18]/70 backdrop-blur-sm p-4 overflow-y-auto select-none">
-      <div className="max-w-xl w-full bg-[#FFFDF9] border-4 border-cozy-gold rounded-3xl p-6 sm:p-8 text-center shadow-[0_20px_60px_rgba(242,184,75,0.35)] my-auto animate-in zoom-in-95 duration-300 relative overflow-hidden">
-        {/* Decorative corner leaves and sparkles */}
-        <div className="absolute top-3 left-4 text-2xl animate-float">🌿</div>
-        <div className="absolute top-3 right-4 text-2xl animate-float" style={{ animationDelay: "1s" }}>🌸</div>
-        <div className="absolute bottom-3 left-4 text-2xl">✨</div>
-        <div className="absolute bottom-3 right-4 text-2xl">🍃</div>
-
-        {/* Illustrated Crown */}
-        <div className="w-20 h-20 mx-auto mb-2 text-5xl flex items-center justify-center rounded-full bg-cozy-gold-light border-3 border-cozy-gold shadow-sm animate-bounce">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-cozy-brown-dark/50 backdrop-blur-xs p-4 overflow-y-auto select-none">
+      <div className="max-w-xl w-full bg-cozy-white border-2 border-cozy-amber rounded-3xl p-6 sm:p-8 text-center shadow-modal my-auto relative">
+        {/* Crown Badge */}
+        <div className="w-16 h-16 mx-auto mb-2 text-4xl flex items-center justify-center rounded-full bg-cozy-amber-light border border-cozy-amber shadow-xs">
           👑
         </div>
 
-        <div className="inline-block px-3 py-1 bg-cozy-gold-light border-2 border-cozy-gold rounded-full text-xs font-fredoka font-bold text-cozy-brown mb-2 shadow-xs">
-          STORYBOOK GRAND CHAMPION!
+        <div className="inline-block px-3 py-0.5 bg-cozy-amber-light border border-cozy-amber rounded-full text-xs font-fredoka font-bold text-cozy-brown-dark mb-2">
+          Storybook Grand Champion
         </div>
 
-        <h1 className="font-fredoka text-3xl sm:text-4xl font-black text-cozy-brown mt-1 mb-1">
+        <h1 className="font-fredoka text-3xl sm:text-4xl font-bold text-cozy-brown-dark mt-1 mb-1">
           {winner.username} Wins!
         </h1>
 
-        <div className="inline-block px-3 py-1 bg-[#FAF5EB] rounded-full border border-[#D8C7B0] text-xs font-hand text-cozy-brown-light mb-5">
+        <div className="inline-block px-3 py-0.5 bg-[#FAF7F0] rounded-full border border-cozy-parchment text-xs font-fredoka text-cozy-brown mb-5">
           Seat {winner.position} • {matchState.winReason === "NO_VALID_TARGETS" ? "Sole Armed Storyteller" : "Last Stickman Standing"}
         </div>
 
         {/* Surviving Cells Shelf */}
-        <div className="bg-[#FAF5EB] border-2 border-[#D8C7B0] rounded-2xl p-4 mb-5 shadow-inner">
-          <div className="text-xs font-fredoka font-bold uppercase tracking-wider text-cozy-brown-light mb-3 flex items-center justify-center gap-1.5">
-            <span>📚</span>
-            <span>Surviving Folio Warriors</span>
+        <div className="bg-[#FAF7F0] border border-cozy-cell-border rounded-2xl p-3 mb-5">
+          <div className="text-xs font-fredoka font-bold uppercase tracking-wider text-cozy-brown mb-2.5">
+            Surviving Folio Warriors
           </div>
-          <div className="grid grid-cols-5 gap-2 max-w-sm mx-auto">
+          <div className="grid grid-cols-5 gap-1.5 max-w-sm mx-auto border border-cozy-cell-border rounded-xl bg-cozy-white p-1">
             {CELL_VALUES.map((val: CellValue) => (
-              <div key={val} className="h-28">
+              <div key={val} className="h-28 border-r last:border-r-0 border-cozy-cell-border">
                 <StickmanCell
                   cell={winner.cells[val]}
                   cellValue={val}
@@ -70,18 +63,18 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         </div>
 
         {/* Match Statistics */}
-        <div className="grid grid-cols-3 gap-3 bg-[#FAF5EB] border-2 border-[#E2D3BE] rounded-2xl p-3 mb-6 text-center font-fredoka">
+        <div className="grid grid-cols-3 gap-3 bg-[#FAF7F0] border border-cozy-cell-border rounded-xl p-3 mb-6 text-center font-fredoka">
           <div>
-            <div className="text-[10px] text-cozy-brown-light uppercase font-bold">Total Pages</div>
-            <div className="text-lg font-bold text-cozy-brown">{matchState.totalTurns}</div>
+            <div className="text-[10px] text-cozy-brown uppercase font-bold">Total Pages</div>
+            <div className="text-lg font-bold text-cozy-brown-dark">{matchState.totalTurns}</div>
           </div>
           <div>
-            <div className="text-[10px] text-cozy-brown-light uppercase font-bold">Champion Kills</div>
-            <div className="text-lg font-bold text-cozy-gold-dark">{winner.kills} ⭐</div>
+            <div className="text-[10px] text-cozy-brown uppercase font-bold">Champion Kills</div>
+            <div className="text-lg font-bold text-cozy-amber-dark">{winner.kills} ⭐</div>
           </div>
           <div>
-            <div className="text-[10px] text-cozy-brown-light uppercase font-bold">Alive Cells</div>
-            <div className="text-lg font-bold text-cozy-brown">
+            <div className="text-[10px] text-cozy-brown uppercase font-bold">Alive Cells</div>
+            <div className="text-lg font-bold text-cozy-brown-dark">
               {Object.values(winner.cells).filter((c) => !c.destroyed).length} / 5
             </div>
           </div>
@@ -91,17 +84,15 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
             onClick={onPlayAgain}
-            className="w-full sm:w-auto px-6 py-3 bg-cozy-gold hover:bg-cozy-gold-dark text-cozy-brown font-fredoka font-bold text-sm rounded-full shadow-md transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-6 py-2.5 bg-cozy-amber hover:bg-cozy-amber-dark text-cozy-brown-dark font-fredoka font-bold text-sm rounded-full shadow-xs transition-colors cursor-pointer"
           >
-            <span>Play Rematch</span>
-            <span>⭐</span>
+            Play Rematch ➔
           </button>
           <button
             onClick={onNewMatch}
-            className="w-full sm:w-auto px-6 py-3 bg-[#FAF5EB] hover:bg-[#F3E8D8] text-cozy-brown border-2 border-[#D8C7B0] font-fredoka font-semibold text-sm rounded-full transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            className="w-full sm:w-auto px-6 py-2.5 bg-cozy-white hover:bg-[#FAF7F0] text-cozy-brown border border-cozy-parchment font-fredoka font-semibold text-sm rounded-full transition-colors cursor-pointer"
           >
-            <span>New Tournament</span>
-            <span>📜</span>
+            New Tournament
           </button>
         </div>
       </div>

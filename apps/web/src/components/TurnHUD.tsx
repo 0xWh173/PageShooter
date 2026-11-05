@@ -38,45 +38,43 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
 
   return (
     <>
-      <header className="w-full bg-[#FFFDF9]/95 border-b-2 border-[#E2D3BE] sticky top-0 z-40 backdrop-blur-md px-4 py-2.5 shadow-sm select-none">
+      <header className="w-full bg-cozy-white border-b-2 border-cozy-parchment sticky top-0 z-40 px-3 sm:px-6 py-2 shadow-subtle select-none">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5">
           {/* Logo & Turn Information */}
           <div className="flex items-center gap-3">
-            <span className="text-2xl animate-float">📖</span>
+            <span className="text-xl">📖</span>
             <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="font-fredoka font-bold text-cozy-brown text-base sm:text-lg tracking-tight">
+              <div className="flex items-center gap-2">
+                <h1 className="font-fredoka font-bold text-cozy-brown-dark text-base tracking-tight">
                   PageShooter
                 </h1>
-                <span className="text-[10px] font-fredoka bg-cozy-peach/30 text-cozy-coral px-2 py-0.5 rounded-full font-bold">
-                  Storybook Edition
+                <span className="text-[10px] font-fredoka bg-cozy-parchment px-2 py-0.5 rounded-full text-cozy-brown font-semibold">
+                  Turn #{matchState.turn.turnNumber}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-xs font-hand text-cozy-brown-light">
-                <span>Page #{matchState.turn.turnNumber}</span>
-                <span>•</span>
-                <span>{matchState.totalTurns} Turns Elapsed</span>
+              <div className="text-[11px] font-fredoka text-cozy-brown/70">
+                {matchState.totalTurns} Total Turns • {matchState.players.filter((p) => p.status === "ACTIVE").length} of {matchState.players.length} Active
               </div>
             </div>
           </div>
 
           {/* Current Turn Focus Banner */}
           {currentPlayer && (
-            <div className="flex items-center gap-3 bg-[#FAF5EB] border-2 border-cozy-gold/60 px-4 py-1.5 rounded-2xl shadow-xs">
-              <span className="font-fredoka text-xs font-bold bg-cozy-gold text-cozy-brown px-2 py-0.5 rounded-full shadow-xs">
+            <div className="flex items-center gap-3 bg-cozy-amber-light border border-cozy-amber/60 px-4 py-1.5 rounded-xl shadow-xs">
+              <span className="font-fredoka text-xs font-bold bg-cozy-amber text-cozy-brown-dark px-2 py-0.5 rounded-full">
                 {currentPlayer.position}
               </span>
               <div className="text-left">
-                <div className="text-xs font-fredoka font-bold text-cozy-brown truncate max-w-[140px] sm:max-w-[200px]">
+                <div className="text-xs font-fredoka font-bold text-cozy-brown-dark truncate max-w-[140px] sm:max-w-[200px]">
                   {currentPlayer.username}
                 </div>
-                <div className="text-[10px] font-hand">
+                <div className="text-[10px] font-fredoka">
                   {isAwaitingShot ? (
-                    <span className="text-cozy-coral font-bold animate-pulse">
-                      Tap any enemy cell to shoot! 🎯
+                    <span className="text-cozy-brown-dark font-bold">
+                      Select an opponent cell to shoot!
                     </span>
                   ) : (
-                    <span className="text-cozy-brown-light">Ready to turn the page... 🍃</span>
+                    <span className="text-cozy-brown/80">Your turn to roll the book</span>
                   )}
                 </div>
               </div>
@@ -84,13 +82,13 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
           )}
 
           {/* Action Button & Sound Settings */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {/* Primary Action Button: Open Storybook */}
             {isAwaitingRoll && (
               <button
                 onClick={onRoll}
                 disabled={isRolling}
-                className="flex items-center gap-2 px-5 py-2.5 bg-cozy-gold hover:bg-cozy-gold-dark text-cozy-brown font-fredoka font-bold text-sm rounded-full transition-all shadow-md active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2 bg-cozy-amber hover:bg-cozy-amber-dark text-cozy-brown-dark font-fredoka font-bold text-xs sm:text-sm rounded-full transition-all shadow-xs active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none cursor-pointer"
               >
                 <span>📖</span>
                 <span>Open Storybook</span>
@@ -98,13 +96,13 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
             )}
 
             {isAwaitingShot && (
-              <div className="px-4 py-2 bg-cozy-peach/25 border-2 border-cozy-coral text-cozy-coral font-fredoka font-bold text-xs rounded-full animate-pulse shadow-xs">
-                Aim at an opponent cell below 🎯
+              <div className="px-3.5 py-1.5 bg-cozy-peach-light border border-cozy-peach text-cozy-brown-dark font-fredoka font-bold text-xs rounded-full">
+                Aim at an opponent cell
               </div>
             )}
 
             {/* Sound Controls */}
-            <div className="flex items-center gap-1.5 bg-[#FAF5EB] border-2 border-[#E2D3BE] px-2.5 py-1.5 rounded-full shadow-xs">
+            <div className="flex items-center gap-1.5 bg-cozy-parchment/40 border border-cozy-parchment px-2 py-1.5 rounded-full">
               <button
                 onClick={handleToggleMute}
                 aria-label={soundSettings.muted ? "Unmute audio" : "Mute audio"}
@@ -120,7 +118,7 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
                 step="0.05"
                 value={soundSettings.muted ? 0 : soundSettings.volume}
                 onChange={handleVolumeChange}
-                className="w-16 h-1.5 accent-cozy-gold cursor-pointer"
+                className="w-14 h-1.5 accent-cozy-amber cursor-pointer"
                 title={`Volume: ${Math.round(soundSettings.volume * 100)}%`}
               />
             </div>
@@ -128,7 +126,7 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
             {/* Reset / Abandon Button */}
             <button
               onClick={() => setShowConfirmReset(true)}
-              className="text-xs font-fredoka font-semibold text-cozy-brown-light hover:text-cozy-coral border-2 border-[#E2D3BE] hover:border-cozy-coral/40 px-3 py-1.5 rounded-full transition-colors cursor-pointer bg-[#FAF5EB]"
+              className="text-xs font-fredoka font-semibold text-cozy-brown hover:text-cozy-brown-dark border border-cozy-parchment hover:border-cozy-brown/40 px-2.5 py-1.5 rounded-full transition-colors cursor-pointer bg-cozy-parchment/30"
               title="Reset match and return to setup"
             >
               Reset
@@ -139,19 +137,18 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
 
       {/* Confirmation Modal for Reset */}
       {showConfirmReset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#462B18]/60 backdrop-blur-xs p-4 select-none">
-          <div className="max-w-sm w-full bg-[#FFFDF9] border-3 border-[#D8C7B0] rounded-3xl p-6 text-center shadow-cozy-lg">
-            <div className="text-3xl mb-2">🍃</div>
-            <h3 className="font-fredoka text-lg font-bold text-cozy-brown mb-1">
-              Leave Current Story?
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-cozy-brown-dark/40 backdrop-blur-xs p-4 select-none">
+          <div className="max-w-sm w-full bg-cozy-white border-2 border-cozy-parchment rounded-2xl p-5 text-center shadow-modal">
+            <h3 className="font-fredoka text-base font-bold text-cozy-brown-dark mb-1">
+              Reset Current Game?
             </h3>
-            <p className="text-xs font-hand text-cozy-brown-light mb-5">
-              This will close the active match from your browser and let you start fresh.
+            <p className="text-xs font-fredoka text-cozy-brown/80 mb-4">
+              This will discard the saved match state and return to match setup.
             </p>
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-2.5">
               <button
                 onClick={() => setShowConfirmReset(false)}
-                className="px-4 py-2 bg-[#FAF5EB] hover:bg-[#F3E8D8] text-cozy-brown text-xs font-fredoka font-bold rounded-full border border-[#D8C7B0] cursor-pointer"
+                className="px-4 py-1.5 bg-cozy-parchment/50 hover:bg-cozy-parchment text-cozy-brown-dark text-xs font-fredoka font-semibold rounded-full cursor-pointer"
               >
                 Keep Playing
               </button>
@@ -160,7 +157,7 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
                   setShowConfirmReset(false);
                   onResetMatch();
                 }}
-                className="px-4 py-2 bg-cozy-coral hover:bg-[#D45D3F] text-white text-xs font-fredoka font-bold rounded-full cursor-pointer shadow-xs"
+                className="px-4 py-1.5 bg-cozy-peach hover:bg-cozy-peach/80 text-cozy-brown-dark text-xs font-fredoka font-bold rounded-full cursor-pointer shadow-xs"
               >
                 Yes, Reset Game
               </button>

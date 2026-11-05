@@ -15,6 +15,7 @@ import { BookCinematic } from "./components/BookCinematic.js";
 import { CombatAnimation } from "./components/CombatAnimation.js";
 import { EliminationModal } from "./components/EliminationModal.js";
 import { VictoryModal } from "./components/VictoryModal.js";
+import { EventFeed } from "./components/EventFeed.js";
 
 interface CinematicState {
   pageNumber: number;
@@ -62,6 +63,15 @@ export const App: React.FC = () => {
     if (qaView === "5p" || qaView === "cinematic" || qaView === "combat" || qaView === "destruction" || qaView === "elimination") {
       return createQa5pState();
     }
+    if (qaView === "6p") {
+      const sixNames = ["Barnaby", "Clover", "Pip", "Hazel", "Oliver", "Rowan"];
+      const inputs = sixNames.map((name, idx) => ({
+        playerId: `p_${idx + 1}`,
+        username: name,
+        avatarId: `avatar_${idx + 1}`
+      }));
+      return createInitialMatchState("qa-6p", "storybook-arena", inputs).state;
+    }
     if (qaView === "10p") {
       const tenNames = ["Barnaby", "Clover", "Pip", "Hazel", "Oliver", "Rowan", "Milo", "Fern", "Bramble", "Willow"];
       const inputs = tenNames.map((name, idx) => ({
@@ -90,6 +100,7 @@ export const App: React.FC = () => {
   });
 
   const [savedMatch, setSavedMatch] = useState<MatchState | null>(null);
+  const [matchEvents, setMatchEvents] = useState<MatchEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(() => !qaView);
 
   const [cinematicData, setCinematicData] = useState<CinematicState | null>(() => {
@@ -167,9 +178,10 @@ export const App: React.FC = () => {
       avatarId: `avatar_${idx + 1}`
     }));
 
-    const { state } = createInitialMatchState(matchId, "storybook-arena", playerInputs);
+    const { state, events } = createInitialMatchState(matchId, "storybook-arena", playerInputs);
     await saveOfflineMatch(state);
     setMatchState(state);
+    setMatchEvents(events);
     setSavedMatch(null);
     soundManager.playTurnChime();
   };
@@ -194,6 +206,7 @@ export const App: React.FC = () => {
     await clearOfflineMatch();
     setMatchState(null);
     setSavedMatch(null);
+    setMatchEvents([]);
     setCinematicData(null);
     setCombatData(null);
     setEliminatedNoticePlayer(null);
@@ -223,7 +236,7 @@ export const App: React.FC = () => {
     const { outcome, pageNumber } = generateBookRoll();
 
     // 2. Apply roll to engine state
-    const { state: nextState } = applyRoll(
+    const { state: nextState, events } = applyRoll(
       matchState,
       currentPlayerId,
       outcome,
@@ -232,6 +245,7 @@ export const App: React.FC = () => {
 
     // 3. Immediately persist state to IndexedDB before animation starts
     await saveOfflineMatch(nextState);
+    setMatchEvents((prev) => [...prev, ...events]);
 
     // 4. Determine consequence description
     let consequenceText: string;
@@ -305,6 +319,7 @@ export const App: React.FC = () => {
     if (!combatData) return;
     const { nextState, events } = combatData;
     setMatchState(nextState);
+    setMatchEvents((prev) => [...prev, ...events]);
     setCombatData(null);
     isActionLockedRef.current = false;
 
@@ -359,6 +374,7 @@ export const App: React.FC = () => {
           matchState={matchState}
           onSelectTarget={handleSelectTarget}
         />
+        <EventFeed events={matchEvents} />
       </main>
 
       {/* Footer / Status bar */}

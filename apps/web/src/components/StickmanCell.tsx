@@ -33,197 +33,197 @@ export const StickmanCell: React.FC<StickmanCellProps> = ({
       tabIndex={isTargetable ? 0 : undefined}
       aria-label={`Cell ${cellValue}: ${destroyed ? "Destroyed" : CELL_PROGRESS_LABELS[progress]}`}
       className={`
-        relative flex flex-col items-center justify-between p-1.5 sm:p-2 rounded-2xl border-2 transition-all duration-200 select-none w-full h-full min-h-[110px]
+        relative w-full h-full flex flex-col justify-between items-center p-2 transition-colors duration-150 select-none
         ${destroyed
-          ? "bg-[#F3ECE0]/60 border-[#D4C3AC] opacity-60 grayscale-[30%]"
+          ? "bg-[#F4EDE2]/50 text-cozy-brown/40"
           : isTargetable
-          ? "bg-cozy-peach/25 border-cozy-coral hover:bg-cozy-peach/40 hover:scale-105 active:scale-95 cursor-pointer touch-manipulation shadow-md animate-pulse"
-          : "bg-[#FFFDF9] border-[#E2D3BE] hover:border-[#C4A887] shadow-sm"
+          ? "bg-cozy-peach-light hover:bg-[#F2DCD3] cursor-pointer touch-manipulation focus:outline-none focus:ring-2 focus:ring-cozy-peach"
+          : "bg-transparent text-cozy-brown-dark"
         }
-        ${hasActiveBullet ? "ring-3 ring-cozy-gold bg-cozy-gold-light/40 shadow-cozy" : ""}
       `}
     >
-      {/* Top Header: Badge & Status */}
-      <div className="flex items-center justify-between w-full px-1">
-        <span className="font-hand text-sm font-bold text-cozy-brown-light">
+      {/* Top Bar: Cell Number & Bullet Badge */}
+      <div className="w-full flex items-center justify-between px-1 text-[11px] leading-none">
+        <span className="font-mono font-bold text-cozy-brown/70">
           #{cellValue}
         </span>
+
         {hasActiveBullet && (
-          <span className="inline-flex items-center gap-0.5 text-[10px] font-fredoka font-bold bg-cozy-gold text-cozy-brown px-1.5 py-0.5 rounded-full shadow-sm animate-bounce">
+          <span className="inline-flex items-center gap-1 font-fredoka font-semibold text-[10px] bg-cozy-amber text-cozy-brown-dark px-1.5 py-0.5 rounded-full shadow-xs">
             <span>⭐</span>
-            <span>BULLET</span>
+            <span>Bullet</span>
           </span>
         )}
+
         {destroyed && (
-          <span className="text-[10px] font-hand font-bold text-cozy-coral bg-cozy-coral/15 px-1 rounded">
-            POOFED
+          <span className="text-[10px] font-fredoka font-medium text-cozy-brown/50">
+            Poofed
           </span>
         )}
       </div>
 
-      {/* Cozy Hand-drawn Stickman SVG */}
-      <div className="relative w-16 h-18 my-0.5 flex items-center justify-center">
-        <svg
-          viewBox="0 0 100 120"
-          className="w-full h-full overflow-visible"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          {/* Base Sketch Pad / Ground Line */}
-          <ellipse
-            cx="50"
-            cy="110"
-            rx="20"
-            ry="4"
-            fill="none"
-            stroke="#D8C7B0"
-            strokeWidth="2"
-            strokeDasharray="3 3"
-          />
+      {/* Center: Scaled Stickman Artwork (occupies 45-55% of cell height) */}
+      <div className="w-full flex-1 flex items-center justify-center my-0.5">
+        <div className="relative w-16 h-18 sm:w-20 sm:h-20 flex items-center justify-center">
+          <svg
+            viewBox="0 0 100 120"
+            className="w-full h-full overflow-visible"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {/* Base Pedestal / Ground Line */}
+            <ellipse
+              cx="50"
+              cy="112"
+              rx="24"
+              ry="4"
+              fill="none"
+              stroke="#D4C5B3"
+              strokeWidth="2"
+              strokeDasharray="3 3"
+            />
 
-          {!destroyed && (
-            <g stroke="#4A2E1B" strokeWidth="3.5" fill="none">
-              {/* STAGE 1: HEAD & SWEET EXPRESSIVE FACE */}
-              {progress >= 1 && (
-                <g>
-                  {/* Head circle with soft pencil fill */}
-                  <circle cx="50" cy="28" r="15" fill="#FFFDF9" stroke="#4A2E1B" strokeWidth="3.5" />
-                  
-                  {/* Blushing peach cheeks */}
-                  <circle cx="40" cy="32" r="2.5" fill="#F9A887" stroke="none" />
-                  <circle cx="60" cy="32" r="2.5" fill="#F9A887" stroke="none" />
+            {!destroyed && (
+              <g stroke="#75685C" strokeWidth="3.5" fill="none">
+                {/* STAGE 1: HEAD & SWEET EXPRESSIVE FACE */}
+                {progress >= 1 && (
+                  <g>
+                    {/* Head circle with soft ivory fill */}
+                    <circle cx="50" cy="28" r="16" fill="#FDFBF7" stroke="#75685C" strokeWidth="3.5" />
+                    
+                    {/* Blushing peach cheeks */}
+                    <circle cx="39" cy="32" r="2.5" fill="#E8B5A5" stroke="none" />
+                    <circle cx="61" cy="32" r="2.5" fill="#E8B5A5" stroke="none" />
 
-                  {/* Smiling eyes */}
-                  <circle cx="43" cy="26" r="1.8" fill="#4A2E1B" stroke="none" />
-                  <circle cx="57" cy="26" r="1.8" fill="#4A2E1B" stroke="none" />
+                    {/* Smiling eyes */}
+                    <circle cx="43" cy="26" r="2" fill="#75685C" stroke="none" />
+                    <circle cx="57" cy="26" r="2" fill="#75685C" stroke="none" />
 
-                  {/* Happy hand-drawn smile */}
-                  <path d="M 45 32 Q 50 36 55 32" stroke="#4A2E1B" strokeWidth="2" fill="none" />
+                    {/* Gentle smile */}
+                    <path d="M 45 32 Q 50 36 55 32" stroke="#75685C" strokeWidth="2" fill="none" />
 
-                  {/* Cute hair tuft */}
-                  <path d="M 48 13 Q 50 8 52 13" stroke="#4A2E1B" strokeWidth="2.5" fill="none" />
-                </g>
-              )}
+                    {/* Hair tuft */}
+                    <path d="M 48 12 Q 50 7 52 12" stroke="#75685C" strokeWidth="2.5" fill="none" />
+                  </g>
+                )}
 
-              {/* STAGE 2: TORSO & COZY SCARF */}
-              {progress >= 2 && (
-                <g>
-                  {/* Torso spine */}
-                  <line x1="50" y1="43" x2="50" y2="78" strokeWidth="4" />
-                  {/* Cute golden scarf / neckerchief */}
-                  <path
-                    d="M 43 43 C 47 47, 53 47, 57 43 C 58 48, 52 52, 47 50 Z"
-                    fill="#F2B84B"
-                    stroke="#4A2E1B"
-                    strokeWidth="2"
-                  />
-                  <line x1="51" y1="48" x2="56" y2="56" stroke="#F2B84B" strokeWidth="3" />
-                </g>
-              )}
+                {/* STAGE 2: TORSO & COZY SCARF */}
+                {progress >= 2 && (
+                  <g>
+                    {/* Torso spine */}
+                    <line x1="50" y1="44" x2="50" y2="80" strokeWidth="4" />
+                    {/* Soft amber scarf */}
+                    <path
+                      d="M 42 44 C 46 48, 54 48, 58 44 C 59 49, 53 53, 47 51 Z"
+                      fill="#D9AA61"
+                      stroke="#75685C"
+                      strokeWidth="2"
+                    />
+                    <line x1="51" y1="49" x2="56" y2="58" stroke="#D9AA61" strokeWidth="3" />
+                  </g>
+                )}
 
-              {/* STAGE 3: LEGS */}
-              {progress >= 3 && (
-                <g>
-                  {/* Left Leg with little foot */}
-                  <line x1="50" y1="78" x2="36" y2="108" strokeWidth="3.5" />
-                  <line x1="36" y1="108" x2="31" y2="108" strokeWidth="3.5" />
+                {/* STAGE 3: LEGS */}
+                {progress >= 3 && (
+                  <g>
+                    {/* Left Leg */}
+                    <line x1="50" y1="80" x2="35" y2="110" strokeWidth="3.5" />
+                    <line x1="35" y1="110" x2="29" y2="110" strokeWidth="3.5" />
 
-                  {/* Right Leg with little foot */}
-                  <line x1="50" y1="78" x2="64" y2="108" strokeWidth="3.5" />
-                  <line x1="64" y1="108" x2="69" y2="108" strokeWidth="3.5" />
-                </g>
-              )}
+                    {/* Right Leg */}
+                    <line x1="50" y1="80" x2="65" y2="110" strokeWidth="3.5" />
+                    <line x1="65" y1="110" x2="71" y2="110" strokeWidth="3.5" />
+                  </g>
+                )}
 
-              {/* STAGE 4: ARMS */}
-              {progress >= 4 && (
-                <g>
-                  {/* Left Arm waving happily */}
-                  <path d="M 50 52 Q 36 44 26 36" strokeWidth="3.5" />
-                  {/* Right Arm */}
-                  <line x1="50" y1="52" x2="74" y2="64" strokeWidth="3.5" />
-                </g>
-              )}
+                {/* STAGE 4: ARMS */}
+                {progress >= 4 && (
+                  <g>
+                    {/* Left Arm waving */}
+                    <path d="M 50 54 Q 35 45 24 36" strokeWidth="3.5" />
+                    {/* Right Arm */}
+                    <line x1="50" y1="54" x2="75" y2="66" strokeWidth="3.5" />
+                  </g>
+                )}
 
-              {/* STAGE 5: PLAYFUL CARTOON BLUNDERBUSS / CORK BLASTER */}
-              {progress >= 5 && hasGun && (
-                <g>
-                  {/* Gun Barrel */}
-                  <line x1="72" y1="64" x2="92" y2="54" stroke="#7C5335" strokeWidth="4.5" />
-                  {/* Brass Muzzle bell */}
-                  <path d="M 90 49 L 96 52 L 96 56 L 90 59 Z" fill="#F2B84B" stroke="#4A2E1B" strokeWidth="1.5" />
-                  {/* Wooden stock */}
-                  <line x1="66" y1="68" x2="72" y2="64" stroke="#7C5335" strokeWidth="3.5" />
-                  {/* Cork string dangle */}
-                  <path d="M 96 54 Q 100 62 98 68" stroke="#D8C7B0" strokeWidth="1.5" strokeDasharray="2 2" fill="none" />
-                  <ellipse cx="98" cy="70" rx="3" ry="2" fill="#E76F51" stroke="#4A2E1B" strokeWidth="1" />
-                </g>
-              )}
-            </g>
-          )}
-
-          {/* DESTROYED STATE: DIZZY EYES & CARTOON CROSSOUT */}
-          {destroyed && (
-            <g>
-              {/* Ghostly pencil outline */}
-              <circle cx="50" cy="28" r="14" fill="#FAF5EB" stroke="#A8947E" strokeWidth="2.5" strokeDasharray="3 2" />
-              {/* Dizzy X eyes */}
-              <g stroke="#E76F51" strokeWidth="2">
-                <line x1="41" y1="24" x2="45" y2="28" />
-                <line x1="45" y1="24" x2="41" y2="28" />
-                <line x1="55" y1="24" x2="59" y2="28" />
-                <line x1="59" y1="24" x2="55" y2="28" />
-                {/* Wobbly mouth */}
-                <path d="M 44 33 Q 47 30 50 33 Q 53 36 56 33" fill="none" />
+                {/* STAGE 5: PLAYFUL BLUNDERBUSS / CORK BLASTER */}
+                {progress >= 5 && hasGun && (
+                  <g>
+                    {/* Barrel */}
+                    <line x1="73" y1="66" x2="94" y2="56" stroke="#8C6548" strokeWidth="4.5" />
+                    {/* Brass Muzzle */}
+                    <path d="M 92 51 L 98 54 L 98 58 L 92 61 Z" fill="#D9AA61" stroke="#75685C" strokeWidth="1.5" />
+                    {/* Stock */}
+                    <line x1="67" y1="70" x2="73" y2="66" stroke="#8C6548" strokeWidth="3.5" />
+                    {/* Dangling cork */}
+                    <path d="M 98 56 Q 102 64 100 70" stroke="#C4B097" strokeWidth="1.5" strokeDasharray="2 2" fill="none" />
+                    <ellipse cx="100" cy="72" rx="3" ry="2" fill="#E8B5A5" stroke="#75685C" strokeWidth="1" />
+                  </g>
+                )}
               </g>
-              {/* Playful cartoon poof smoke cloud */}
-              <path
-                d="M 30 75 Q 24 65 34 58 Q 30 46 44 48 Q 50 38 60 44 Q 72 38 74 52 Q 84 58 78 70 Q 82 82 70 86 Q 64 96 50 90 Q 38 94 34 84 Z"
-                fill="#EAE0D0"
-                fillOpacity="0.5"
-                stroke="#C4B097"
-                strokeWidth="2"
-              />
-              {/* Big friendly crayon cross */}
-              <line x1="24" y1="20" x2="76" y2="100" stroke="#E76F51" strokeWidth="3.5" strokeLinecap="round" />
-              <line x1="76" y1="20" x2="24" y2="100" stroke="#E76F51" strokeWidth="3.5" strokeLinecap="round" />
-            </g>
-          )}
+            )}
 
-          {/* TARGETING RETICLE OVERLAY */}
-          {isTargetable && !destroyed && (
-            <g className="animate-pulse">
-              <circle cx="50" cy="55" r="32" fill="none" stroke="#E76F51" strokeWidth="2" strokeDasharray="4 4" />
-              {/* Corner crosshairs */}
-              <line x1="50" y1="18" x2="50" y2="26" stroke="#E76F51" strokeWidth="2.5" />
-              <line x1="50" y1="84" x2="50" y2="92" stroke="#E76F51" strokeWidth="2.5" />
-              <line x1="13" y1="55" x2="21" y2="55" stroke="#E76F51" strokeWidth="2.5" />
-              <line x1="79" y1="55" x2="87" y2="55" stroke="#E76F51" strokeWidth="2.5" />
-            </g>
-          )}
-        </svg>
+            {/* DESTROYED STATE */}
+            {destroyed && (
+              <g>
+                {/* Faint head outline */}
+                <circle cx="50" cy="28" r="15" fill="#F4EDE2" stroke="#B0A08E" strokeWidth="2" strokeDasharray="3 3" />
+                {/* Dizzy X eyes */}
+                <g stroke="#A77B59" strokeWidth="2">
+                  <line x1="41" y1="24" x2="45" y2="28" />
+                  <line x1="45" y1="24" x2="41" y2="28" />
+                  <line x1="55" y1="24" x2="59" y2="28" />
+                  <line x1="59" y1="24" x2="55" y2="28" />
+                  <path d="M 45 33 Q 50 31 55 33" fill="none" />
+                </g>
+                {/* Soft pencil poof cloud */}
+                <path
+                  d="M 32 75 Q 26 65 36 58 Q 32 46 46 48 Q 52 38 62 44 Q 74 38 76 52 Q 86 58 80 70 Q 84 82 72 86 Q 66 96 52 90 Q 40 94 36 84 Z"
+                  fill="#EDE3D5"
+                  fillOpacity="0.6"
+                  stroke="#C4B097"
+                  strokeWidth="1.5"
+                />
+                {/* Crayon Cross-out Lines */}
+                <line x1="22" y1="18" x2="78" y2="104" stroke="#A77B59" strokeWidth="3" strokeLinecap="round" />
+                <line x1="78" y1="18" x2="22" y2="104" stroke="#A77B59" strokeWidth="3" strokeLinecap="round" />
+              </g>
+            )}
+
+            {/* TARGETING RETICLE */}
+            {isTargetable && !destroyed && (
+              <g stroke="#E8B5A5" strokeWidth="2">
+                <circle cx="50" cy="56" r="34" fill="none" strokeDasharray="4 4" />
+                <line x1="50" y1="16" x2="50" y2="24" />
+                <line x1="50" y1="88" x2="50" y2="96" />
+                <line x1="10" y1="56" x2="18" y2="56" />
+                <line x1="82" y1="56" x2="90" y2="56" />
+              </g>
+            )}
+          </svg>
+        </div>
       </div>
 
-      {/* Progress Label */}
-      <div className="w-full text-center mt-0.5">
-        <span
-          className={`text-[11px] font-fredoka font-medium tracking-tight ${
-            destroyed
-              ? "text-cozy-coral line-through"
-              : progress === 5
-              ? "text-cozy-gold-dark font-bold"
-              : "text-cozy-brown-light"
-          }`}
-        >
-          {CELL_PROGRESS_LABELS[progress]}
-        </span>
+      {/* Bottom Bar: Progression Label or Target Prompt */}
+      <div className="w-full text-center py-0.5">
+        {isTargetable && !destroyed ? (
+          <span className="inline-block text-[10px] font-fredoka font-semibold text-cozy-brown-dark bg-[#F2D0C6] px-2 py-0.5 rounded-full border border-cozy-peach">
+            Target
+          </span>
+        ) : (
+          <span
+            className={`text-[11px] font-fredoka font-medium tracking-tight ${
+              destroyed
+                ? "text-cozy-brown/40 line-through"
+                : progress === 5
+                ? "text-cozy-amber-dark font-bold"
+                : "text-cozy-brown/80"
+            }`}
+          >
+            {CELL_PROGRESS_LABELS[progress]}
+          </span>
+        )}
       </div>
-
-      {/* Target Button Prompt */}
-      {isTargetable && !destroyed && (
-        <span className="mt-1 text-[10px] font-fredoka font-bold text-white bg-cozy-coral px-2 py-0.5 rounded-full shadow-sm">
-          TARGET 🎯
-        </span>
-      )}
     </div>
   );
 };

@@ -92,7 +92,7 @@ describe("React Components QA & Regression Tests", () => {
         />
       );
 
-      expect(screen.getByText(/Active Adventure Discovered/i)).toBeTruthy();
+      expect(screen.getByText(/Active Game Discovered/i)).toBeTruthy();
       const resumeBtn = screen.getByRole("button", { name: /Resume Game/i });
       fireEvent.click(resumeBtn);
       expect(onResume).toHaveBeenCalledTimes(1);
@@ -144,7 +144,7 @@ describe("React Components QA & Regression Tests", () => {
         />
       );
 
-      expect(screen.getByText("POOFED")).toBeTruthy();
+      expect(screen.getByText(/Poofed/i)).toBeTruthy();
       const element = screen.getByLabelText(/Cell 4: Destroyed/i);
       fireEvent.click(element);
       expect(onSelect).not.toHaveBeenCalled();

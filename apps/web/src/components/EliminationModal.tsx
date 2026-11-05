@@ -24,35 +24,30 @@ export const EliminationModal: React.FC<EliminationModalProps> = ({
   return (
     <div
       onClick={onDismiss}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#462B18]/70 backdrop-blur-sm p-4 animate-in fade-in duration-300 cursor-pointer select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-cozy-brown-dark/50 backdrop-blur-xs p-4 animate-in fade-in select-none cursor-pointer"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="max-w-md w-full bg-[#FFFDF9] border-4 border-cozy-coral rounded-3xl p-6 sm:p-8 text-center shadow-[0_20px_50px_rgba(231,111,81,0.25)] relative overflow-hidden"
+        className="max-w-md w-full bg-cozy-white border-2 border-cozy-peach rounded-3xl p-6 sm:p-8 text-center shadow-modal relative"
       >
-        {/* Floating cozy decorations */}
-        <div className="absolute top-3 left-4 text-xl">🎈</div>
-        <div className="absolute top-3 right-4 text-xl">✨</div>
-
-        {/* Cute illustrated icon: Sleepy stickman floating on a balloon */}
-        <div className="w-20 h-20 mx-auto mb-3 flex items-center justify-center rounded-full bg-cozy-peach/30 border-2 border-cozy-coral shadow-inner">
-          <span className="text-4xl animate-bounce">😴</span>
+        <div className="w-16 h-16 mx-auto mb-3 flex items-center justify-center rounded-full bg-cozy-peach-light border border-cozy-peach">
+          <span className="text-3xl">😴</span>
         </div>
 
-        <div className="inline-block px-3 py-1 bg-cozy-coral/15 border border-cozy-coral/40 rounded-full text-xs font-fredoka font-bold text-cozy-coral mb-2">
-          OUT OF INK!
+        <div className="inline-block px-3 py-0.5 bg-cozy-peach-light border border-cozy-peach rounded-full text-xs font-fredoka font-bold text-cozy-brown-dark mb-2">
+          Out of Ink
         </div>
 
-        <h2 className="font-fredoka text-2xl sm:text-3xl font-black text-cozy-brown mt-1 mb-1">
+        <h2 className="font-fredoka text-2xl sm:text-3xl font-bold text-cozy-brown-dark mt-1 mb-1">
           {eliminatedPlayer.username}
         </h2>
 
-        <div className="inline-block px-3 py-1 bg-[#FAF5EB] rounded-full border border-[#D8C7B0] text-xs font-hand text-cozy-brown-light mb-4">
+        <div className="inline-block px-3 py-0.5 bg-[#FAF7F0] rounded-full border border-cozy-parchment text-xs font-fredoka text-cozy-brown mb-4">
           Seat {eliminatedPlayer.position} • All 5 Folio Cells Poofed
         </div>
 
-        <p className="text-xs sm:text-sm font-hand text-cozy-brown-light italic mb-6 px-4">
-          "Their pencil ran soft, and their story gently rests. Better luck in the next chapter!"
+        <p className="text-xs sm:text-sm font-fredoka text-cozy-brown/80 mb-6 px-4">
+          Their pencil ran soft and their folio gently rests. Better luck in the next chapter!
         </p>
 
         <button
@@ -60,7 +55,7 @@ export const EliminationModal: React.FC<EliminationModalProps> = ({
             e.stopPropagation();
             onDismiss();
           }}
-          className="px-6 py-2.5 bg-cozy-coral hover:bg-[#D45D3F] text-white font-fredoka font-bold text-sm rounded-full shadow-sm transition-all"
+          className="px-6 py-2.5 bg-cozy-amber hover:bg-cozy-amber-dark text-cozy-brown-dark font-fredoka font-bold text-xs sm:text-sm rounded-full shadow-xs transition-colors"
         >
           Resume Tournament ➔
         </button>

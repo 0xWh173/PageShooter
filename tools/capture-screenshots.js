@@ -42,13 +42,13 @@ const server = http.createServer((req, res) => {
   }
 });
 
-function takeScreenshot(url, outputPath) {
+function takeScreenshot(url, outputPath, width = 1280, height = 820) {
   return new Promise((resolve, reject) => {
     const args = [
       "--headless=new",
       "--disable-gpu",
       "--no-sandbox",
-      `--window-size=1280,820`,
+      `--window-size=${width},${height}`,
       `--screenshot=${outputPath}`,
       url
     ];
@@ -67,21 +67,24 @@ async function run() {
     console.log(`Static server running on http://localhost:${PORT}`);
 
     const screens = [
-      { name: "1_setup_screen.png", view: "setup" },
-      { name: "2_five_player_battlefield.png", view: "5p" },
-      { name: "3_ten_player_battlefield.png", view: "10p" },
-      { name: "4_book_cinematic.png", view: "cinematic" },
-      { name: "5_cell_destruction.png", view: "destruction" },
-      { name: "6_player_elimination.png", view: "elimination" },
-      { name: "7_victory_screen.png", view: "victory" }
+      { name: "1_setup_screen.png", view: "setup", width: 1280, height: 820 },
+      { name: "2_five_player_desktop.png", view: "5p", width: 1920, height: 1080 },
+      { name: "3_six_player_desktop.png", view: "6p", width: 1920, height: 1080 },
+      { name: "4_ten_player_desktop.png", view: "10p", width: 1920, height: 1080 },
+      { name: "5_five_player_laptop.png", view: "5p", width: 1366, height: 768 },
+      { name: "6_five_player_mobile.png", view: "5p", width: 390, height: 844 },
+      { name: "7_book_cinematic.png", view: "cinematic", width: 1280, height: 820 },
+      { name: "8_cell_destruction.png", view: "destruction", width: 1280, height: 820 },
+      { name: "9_player_elimination.png", view: "elimination", width: 1280, height: 820 },
+      { name: "10_victory_screen.png", view: "victory", width: 1280, height: 820 }
     ];
 
     try {
       for (const s of screens) {
         const url = `http://localhost:${PORT}/?qa_view=${s.view}`;
         const out = path.join(ARTIFACTS_DIR, s.name);
-        console.log(`Capturing ${s.name} from ${url}...`);
-        await takeScreenshot(url, out);
+        console.log(`Capturing ${s.name} (${s.width}x${s.height}) from ${url}...`);
+        await takeScreenshot(url, out, s.width, s.height);
         console.log(`Saved ${s.name} (${fs.statSync(out).size} bytes)`);
       }
       console.log("All screenshots captured successfully!");
@@ -94,3 +97,4 @@ async function run() {
 }
 
 run();
+
