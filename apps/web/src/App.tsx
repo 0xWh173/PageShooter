@@ -6,9 +6,17 @@ import {
   applyShot,
   generateBookRoll
 } from "@pageshooter/game-engine";
-import { saveOfflineMatch, loadOfflineMatch, clearOfflineMatch } from "./storage/db.js";
+import {
+  saveOfflineMatch,
+  loadOfflineMatch,
+  clearOfflineMatch,
+  saveOfflineMatchVisuals,
+  loadOfflineMatchVisuals
+} from "./storage/db.js";
+import type { MatchVisualConfig, AnimePackId } from "./anime/types.js";
+import { assignMatchVisuals, ensureMatchVisuals } from "./anime/registry.js";
 import { soundManager } from "./audio/soundManager.js";
-import { SetupScreen } from "./components/SetupScreen.js";
+import { SetupScreen, type PlayerSetupInput } from "./components/SetupScreen.js";
 import { TurnHUD } from "./components/TurnHUD.js";
 import { Battlefield } from "./components/Battlefield.js";
 import { BookCinematic } from "./components/BookCinematic.js";
@@ -27,8 +35,12 @@ interface CinematicState {
 interface CombatState {
   shooterName: string;
   shooterPosition: string;
+  shooterPackId: AnimePackId;
+  shooterCharacterId: string;
   victimName: string;
   victimPosition: string;
+  victimPackId: AnimePackId;
+  victimCharacterId: string;
   targetCellValue: CellValue;
   nextState: MatchState;
   events: MatchEvent[];
@@ -60,7 +72,14 @@ export const App: React.FC = () => {
 
   const [matchState, setMatchState] = useState<MatchState | null>(() => {
     if (!qaView || qaView === "setup") return null;
-    if (qaView === "5p" || qaView === "cinematic" || qaView === "combat" || qaView === "destruction" || qaView === "elimination") {
+    if (
+      qaView === "5p" ||
+      qaView === "cinematic" ||
+      qaView === "combat" ||
+      qaView === "destruction" ||
+      qaView === "elimination" ||
+      qaView === "dragonball"
+    ) {
       return createQa5pState();
     }
     if (qaView === "6p") {
@@ -88,9 +107,8 @@ export const App: React.FC = () => {
       state.winReason = qaView === "victory_novalidtargets" ? "NO_VALID_TARGETS" : "LAST_PLAYER_STANDING";
       state.totalTurns = 28;
       state.players[0].kills = 4;
-      
+
       if (qaView === "victory_5survivors") {
-        // All 5 cells surviving with diverse progression stages
         state.players[0].cells[0].progress = 5;
         state.players[0].cells[0].hasGun = true;
         state.players[0].cells[2].progress = 4;
@@ -98,7 +116,6 @@ export const App: React.FC = () => {
         state.players[0].cells[6].progress = 2;
         state.players[0].cells[8].progress = 1;
       } else {
-        // Fewer surviving cells (3 alive, 2 destroyed)
         state.players[0].cells[0].progress = 5;
         state.players[0].cells[0].hasGun = true;
         state.players[0].cells[4].progress = 3;
@@ -111,9 +128,26 @@ export const App: React.FC = () => {
     return null;
   });
 
+  const [visualConfig, setVisualConfig] = useState<MatchVisualConfig | null>(() => {
+    if (!matchState) return null;
+    return assignMatchVisuals(
+      matchState.matchId,
+      matchState.players.map((p) => ({ playerId: p.playerId, animePackId: "dragon-ball" }))
+    );
+  });
+
   const [savedMatch, setSavedMatch] = useState<MatchState | null>(null);
   const [matchEvents, setMatchEvents] = useState<MatchEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(() => !qaView);
+
+  // Global subtle animation frame ticker for idle breathing and Ki flickering
+  const [frame, setFrame] = useState<number>(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setFrame((f) => (f + 1) % 60);
+    }, 150);
+    return () => clearInterval(timer);
+  }, []);
 
   const [cinematicData, setCinematicData] = useState<CinematicState | null>(() => {
     if (qaView === "cinematic") {
@@ -134,8 +168,12 @@ export const App: React.FC = () => {
       return {
         shooterName: "Barnaby",
         shooterPosition: "P1",
+        shooterPackId: "dragon-ball",
+        shooterCharacterId: "goku",
         victimName: "Clover",
         victimPosition: "P2",
+        victimPackId: "dragon-ball",
+        victimCharacterId: "vegeta",
         targetCellValue: 2,
         nextState: state,
         events: []
@@ -154,16 +192,23 @@ export const App: React.FC = () => {
 
   const isActionLockedRef = useRef<boolean>(false);
 
-  // Check IndexedDB for existing active match on initial load (if not in QA mode)
+  // Check IndexedDB for existing active match and visual config on initial load
   useEffect(() => {
     if (qaView) return;
     let isMounted = true;
-    loadOfflineMatch(true)
-      .then((loaded) => {
+    Promise.all([loadOfflineMatch(true), loadOfflineMatchVisuals()])
+      .then(([loadedMatch, loadedVisuals]) => {
         if (!isMounted) return;
-        if (loaded && loaded.phase === "ACTIVE") {
-          setMatchState(loaded);
-          setSavedMatch(loaded);
+        if (loadedMatch && loadedMatch.phase === "ACTIVE") {
+          setMatchState(loadedMatch);
+          setSavedMatch(loadedMatch);
+
+          const fixedVisuals = ensureMatchVisuals(
+            loadedVisuals,
+            loadedMatch.matchId,
+            loadedMatch.players.map((p) => p.playerId)
+          );
+          setVisualConfig(fixedVisuals);
         } else {
           clearOfflineMatch().catch(() => {});
         }
@@ -181,27 +226,47 @@ export const App: React.FC = () => {
   }, [qaView]);
 
   // Start new match
-  const handleStartMatch = async (playerNames: string[]) => {
+  const handleStartMatch = async (players: PlayerSetupInput[]) => {
     isActionLockedRef.current = false;
-    const matchId = `cozy-match-${Date.now()}`;
-    const playerInputs = playerNames.map((name, idx) => ({
+    const matchId = `anime-match-${Date.now()}`;
+    const playerInputs = players.map((p, idx) => ({
       playerId: `p_${idx + 1}_${Date.now()}`,
-      username: name,
+      username: p.name,
       avatarId: `avatar_${idx + 1}`
     }));
 
     const { state, events } = createInitialMatchState(matchId, "storybook-arena", playerInputs);
+
+    // Assign fixed characters from chosen packs
+    const visuals = assignMatchVisuals(
+      matchId,
+      playerInputs.map((inp, idx) => ({
+        playerId: inp.playerId,
+        animePackId: players[idx]?.animePackId || "dragon-ball"
+      }))
+    );
+
     await saveOfflineMatch(state);
+    await saveOfflineMatchVisuals(visuals);
+
     setMatchState(state);
+    setVisualConfig(visuals);
     setMatchEvents(events);
     setSavedMatch(null);
     soundManager.playTurnChime();
   };
 
   // Resume saved match from IndexedDB
-  const handleResumeSavedMatch = () => {
+  const handleResumeSavedMatch = async () => {
     if (savedMatch && savedMatch.phase === "ACTIVE") {
+      const loadedVisuals = await loadOfflineMatchVisuals();
+      const fixedVisuals = ensureMatchVisuals(
+        loadedVisuals,
+        savedMatch.matchId,
+        savedMatch.players.map((p) => p.playerId)
+      );
       setMatchState(savedMatch);
+      setVisualConfig(fixedVisuals);
       soundManager.playTurnChime();
     }
   };
@@ -210,6 +275,7 @@ export const App: React.FC = () => {
   const handleDiscardSavedMatch = async () => {
     await clearOfflineMatch();
     setSavedMatch(null);
+    setVisualConfig(null);
   };
 
   // Abandon / Reset current match
@@ -217,6 +283,7 @@ export const App: React.FC = () => {
     isActionLockedRef.current = false;
     await clearOfflineMatch();
     setMatchState(null);
+    setVisualConfig(null);
     setSavedMatch(null);
     setMatchEvents([]);
     setCinematicData(null);
@@ -224,11 +291,17 @@ export const App: React.FC = () => {
     setEliminatedNoticePlayer(null);
   };
 
-  // Play again with same roster
+  // Play again with same roster & packs
   const handlePlayAgain = async () => {
     if (!matchState) return;
-    const playerNames = matchState.players.map((p) => p.username);
-    await handleStartMatch(playerNames);
+    const playerInputs: PlayerSetupInput[] = matchState.players.map((p) => {
+      const vis = visualConfig?.playerVisuals[p.playerId];
+      return {
+        name: p.username,
+        animePackId: vis?.animePackId || "dragon-ball"
+      };
+    });
+    await handleStartMatch(playerInputs);
   };
 
   // Roll storybook
@@ -262,13 +335,17 @@ export const App: React.FC = () => {
     // 4. Determine consequence description
     let consequenceText: string;
     const targetCell = currentPlayer.cells[outcome];
+    const playerVis = visualConfig?.playerVisuals[currentPlayerId];
+    const assignedCharId = playerVis?.characterAssignments[outcome];
+
     if (targetCell.destroyed) {
-      consequenceText = `Cell #${outcome} was already poofed! Turn passes gently.`;
+      consequenceText = `Cell #${outcome} was already vaporized! Turn passes gently.`;
     } else if (targetCell.progress < 5) {
-      const labels = ["Empty", "Face", "Body", "Legs", "Arms", "Gun"];
-      consequenceText = `🎉 Cell #${outcome} learned ${labels[targetCell.progress + 1]}!`;
+      const labels = ["Empty", "Face", "Body", "Legs", "Arms", "Attack Ready"];
+      const charName = assignedCharId ? assignedCharId.toUpperCase() : `Cell #${outcome}`;
+      consequenceText = `⚡ ${charName} reached ${labels[targetCell.progress + 1]} stage!`;
     } else {
-      consequenceText = `⭐ Star Bullet loaded! Pick an opponent cell to aim!`;
+      consequenceText = `⭐ Ki Blast loaded! Select an opponent cell to unleash!`;
     }
 
     // 5. Trigger Cinematic
@@ -314,12 +391,26 @@ export const App: React.FC = () => {
     // Persist immediately to IndexedDB
     await saveOfflineMatch(nextState);
 
-    // Trigger Playful Killing Sequence
+    // Character identity resolution
+    const shooterVisual = visualConfig?.playerVisuals[shooterId];
+    const shooterPackId = shooterVisual?.animePackId || "dragon-ball";
+    const shooterCharId =
+      shooterVisual?.characterAssignments[matchState.turn.rolledCell || 0] || "goku";
+
+    const victimVisual = visualConfig?.playerVisuals[targetPlayerId];
+    const victimPackId = victimVisual?.animePackId || "dragon-ball";
+    const victimCharId = victimVisual?.characterAssignments[cellValue] || "vegeta";
+
+    // Trigger Combat Animation
     setCombatData({
       shooterName: shooter.username,
       shooterPosition: shooter.position,
+      shooterPackId,
+      shooterCharacterId: shooterCharId,
       victimName: victim.username,
       victimPosition: victim.position,
+      victimPackId,
+      victimCharacterId: victimCharId,
       targetCellValue: cellValue,
       nextState,
       events
@@ -370,12 +461,20 @@ export const App: React.FC = () => {
     );
   }
 
+  // If match is completed, show Victory Screen dedicated full-page view
+  if (matchState.phase === "COMPLETED") {
+    return (
+      <VictoryModal
+        matchState={matchState}
+        visualConfig={visualConfig}
+        onPlayAgain={handlePlayAgain}
+        onNewMatch={handleResetMatch}
+      />
+    );
+  }
+
   return (
-    <div
-      className={`min-h-screen bg-cozy-ivory text-cozy-brown-dark flex flex-col justify-between selection:bg-cozy-amber selection:text-cozy-brown-dark w-full max-w-full overflow-x-hidden ${
-        matchState.phase === "COMPLETED" ? "overflow-hidden max-h-screen" : ""
-      }`}
-    >
+    <div className="min-h-screen bg-cozy-ivory text-cozy-brown-dark flex flex-col justify-between selection:bg-cozy-amber selection:text-cozy-brown-dark w-full max-w-full overflow-x-hidden">
       {/* Turn HUD Header (Fixed height flow, no overlap) */}
       <TurnHUD
         matchState={matchState}
@@ -388,6 +487,8 @@ export const App: React.FC = () => {
       <main className="flex-1 w-full max-w-7xl mx-auto px-2 sm:px-4 py-3 flex flex-col max-w-full overflow-hidden">
         <Battlefield
           matchState={matchState}
+          visualConfig={visualConfig}
+          frame={frame}
           onSelectTarget={handleSelectTarget}
         />
         <EventFeed events={matchEvents} />
@@ -395,7 +496,7 @@ export const App: React.FC = () => {
 
       {/* Footer / Status bar */}
       <footer className="w-full border-t border-cozy-parchment bg-cozy-white/60 py-2 px-4 text-center text-xs font-fredoka text-cozy-brown/70 flex-shrink-0">
-        <span>PageShooter • Cozy Storybook Edition • Auto-saved to browser</span>
+        <span>PageShooter • Anime Character Pack Edition • Auto-saved to browser</span>
       </footer>
 
       {/* Storybook Opening Cinematic Modal */}
@@ -408,13 +509,17 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Playful Killing Animation Modal */}
+      {/* Combat Animation Modal */}
       {combatData && (
         <CombatAnimation
           shooterName={combatData.shooterName}
           shooterPosition={combatData.shooterPosition}
+          shooterPackId={combatData.shooterPackId}
+          shooterCharacterId={combatData.shooterCharacterId}
           victimName={combatData.victimName}
           victimPosition={combatData.victimPosition}
+          victimPackId={combatData.victimPackId}
+          victimCharacterId={combatData.victimCharacterId}
           targetCellValue={combatData.targetCellValue}
           onComplete={handleCombatComplete}
         />
@@ -424,16 +529,8 @@ export const App: React.FC = () => {
       {eliminatedNoticePlayer && (
         <EliminationModal
           eliminatedPlayer={eliminatedNoticePlayer}
+          visualConfig={visualConfig}
           onDismiss={() => setEliminatedNoticePlayer(null)}
-        />
-      )}
-
-      {/* Match Victory Modal */}
-      {matchState.phase === "COMPLETED" && (
-        <VictoryModal
-          matchState={matchState}
-          onPlayAgain={handlePlayAgain}
-          onNewMatch={handleResetMatch}
         />
       )}
     </div>

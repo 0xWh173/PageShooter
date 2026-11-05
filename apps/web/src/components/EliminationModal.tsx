@@ -1,22 +1,31 @@
 import React, { useEffect } from "react";
 import type { PlayerState } from "@pageshooter/shared";
+import type { MatchVisualConfig } from "../anime/types.js";
 import { soundManager } from "../audio/soundManager.js";
+import { CharacterCellRenderer } from "../anime/components/CharacterCellRenderer.js";
 
 interface EliminationModalProps {
   eliminatedPlayer: PlayerState;
+  visualConfig?: MatchVisualConfig | null;
   onDismiss: () => void;
 }
 
 export const EliminationModal: React.FC<EliminationModalProps> = ({
   eliminatedPlayer,
+  visualConfig,
   onDismiss
 }) => {
+  const playerVisual = visualConfig?.playerVisuals[eliminatedPlayer.playerId];
+  const packId = playerVisual?.animePackId || "dragon-ball";
+  // Sample their first cell character as representative
+  const characterId = playerVisual?.characterAssignments[0] || "goku";
+
   useEffect(() => {
     soundManager.playElimination();
 
     const timer = setTimeout(() => {
       onDismiss();
-    }, 3800);
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, [onDismiss]);
@@ -24,18 +33,24 @@ export const EliminationModal: React.FC<EliminationModalProps> = ({
   return (
     <div
       onClick={onDismiss}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-cozy-brown-dark/50 backdrop-blur-xs p-4 animate-in fade-in select-none cursor-pointer"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#2B2118]/80 backdrop-blur-sm p-4 animate-in fade-in select-none cursor-pointer"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="max-w-md w-full bg-cozy-white border-2 border-cozy-peach rounded-3xl p-6 sm:p-8 text-center shadow-modal relative"
+        className="max-w-md w-full bg-[#FFFDF9] border-2 border-cozy-parchment rounded-3xl p-6 sm:p-8 text-center shadow-2xl relative"
       >
-        <div className="w-16 h-16 mx-auto mb-3 flex items-center justify-center rounded-full bg-cozy-peach-light border border-cozy-peach">
-          <span className="text-3xl">😴</span>
+        <div className="w-20 h-20 mx-auto mb-2 flex items-center justify-center relative">
+          <CharacterCellRenderer
+            packId={packId}
+            characterId={characterId}
+            progress={1}
+            isDestroyed={true}
+            animationState="defeat"
+          />
         </div>
 
-        <div className="inline-block px-3 py-0.5 bg-cozy-peach-light border border-cozy-peach rounded-full text-xs font-fredoka font-bold text-cozy-brown-dark mb-2">
-          Out of Ink
+        <div className="inline-block px-3 py-0.5 bg-orange-100 border border-orange-200 rounded-full text-xs font-fredoka font-bold text-orange-900 mb-2">
+          {packId === "dragon-ball" ? "💥 Eliminated from Arena" : "Out of Ink"}
         </div>
 
         <h2 className="font-fredoka text-2xl sm:text-3xl font-bold text-cozy-brown-dark mt-1 mb-1">
@@ -43,11 +58,11 @@ export const EliminationModal: React.FC<EliminationModalProps> = ({
         </h2>
 
         <div className="inline-block px-3 py-0.5 bg-[#FAF7F0] rounded-full border border-cozy-parchment text-xs font-fredoka text-cozy-brown mb-4">
-          Seat {eliminatedPlayer.position} • All 5 Folio Cells Poofed
+          Seat {eliminatedPlayer.position} • All 5 Cells Vaporized
         </div>
 
         <p className="text-xs sm:text-sm font-fredoka text-cozy-brown/80 mb-6 px-4">
-          Their pencil ran soft and their folio gently rests. Better luck in the next chapter!
+          All warrior cells have fallen in battle. Better luck in the next tournament!
         </p>
 
         <button
@@ -55,7 +70,7 @@ export const EliminationModal: React.FC<EliminationModalProps> = ({
             e.stopPropagation();
             onDismiss();
           }}
-          className="px-6 py-2.5 bg-cozy-amber hover:bg-cozy-amber-dark text-cozy-brown-dark font-fredoka font-bold text-xs sm:text-sm rounded-full shadow-xs transition-colors"
+          className="px-6 py-2.5 bg-cozy-amber hover:bg-cozy-amber-dark text-cozy-brown-dark font-fredoka font-bold text-xs sm:text-sm rounded-full shadow-xs transition-colors cursor-pointer"
         >
           Resume Tournament ➔
         </button>

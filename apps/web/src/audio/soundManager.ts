@@ -286,6 +286,87 @@ class SoundManager {
       osc.stop(startTime + 0.8);
     });
   }
+
+  public playKiCharge(): void {
+    const vol = this.getEffectiveVolume();
+    if (vol <= 0) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    // Resonant rising Ki aura hum
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(140, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(520, ctx.currentTime + 0.8);
+
+    gain.gain.setValueAtTime(0.01, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(vol * 0.45, ctx.currentTime + 0.6);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.85);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 0.85);
+  }
+
+  public playBeamBlast(): void {
+    const vol = this.getEffectiveVolume();
+    if (vol <= 0) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    // Immense energy beam release
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(380, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + 0.6);
+
+    gain.gain.setValueAtTime(vol * 0.5, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 0.6);
+  }
+
+  public playEnergyImpact(): void {
+    const vol = this.getEffectiveVolume();
+    if (vol <= 0) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    // Explosive blast impact
+    const osc = ctx.createOscillator();
+    const sub = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(220, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(35, ctx.currentTime + 0.5);
+
+    sub.type = "sine";
+    sub.frequency.setValueAtTime(90, ctx.currentTime);
+    sub.frequency.exponentialRampToValueAtTime(20, ctx.currentTime + 0.5);
+
+    gain.gain.setValueAtTime(vol * 0.65, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+
+    osc.connect(gain);
+    sub.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    sub.start();
+    osc.stop(ctx.currentTime + 0.5);
+    sub.stop(ctx.currentTime + 0.5);
+  }
 }
 
 export const soundManager = new SoundManager();

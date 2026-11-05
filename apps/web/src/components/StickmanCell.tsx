@@ -1,6 +1,9 @@
 import React from "react";
 import type { CellState, CellValue } from "@pageshooter/shared";
 import { CELL_PROGRESS_LABELS } from "@pageshooter/shared";
+import type { AnimePackId } from "../anime/types.js";
+import { getCharacter } from "../anime/registry.js";
+import { CharacterCellRenderer } from "../anime/components/CharacterCellRenderer.js";
 
 interface StickmanCellProps {
   cell: CellState;
@@ -8,6 +11,9 @@ interface StickmanCellProps {
   isShooter?: boolean;
   hasActiveBullet?: boolean;
   isTargetable?: boolean;
+  packId?: AnimePackId;
+  characterId?: string;
+  frame?: number;
   onTargetSelect?: (cellValue: CellValue) => void;
 }
 
@@ -16,9 +22,15 @@ export const StickmanCell: React.FC<StickmanCellProps> = ({
   cellValue,
   hasActiveBullet = false,
   isTargetable = false,
+  packId,
+  characterId,
+  frame = 0,
   onTargetSelect
 }) => {
-  const { progress, destroyed, hasGun } = cell;
+  const activePackId: AnimePackId = packId || (characterId ? "dragon-ball" : "classic-stickman");
+  const { progress, destroyed } = cell;
+
+  const character = characterId ? getCharacter(activePackId, characterId) : null;
 
   const handleClick = () => {
     if (isTargetable && !destroyed && onTargetSelect) {
@@ -43,171 +55,74 @@ export const StickmanCell: React.FC<StickmanCellProps> = ({
       `}
     >
       {/* Top Bar: Cell Number & Bullet Badge */}
-      <div className="w-full flex items-center justify-between px-0.5 sm:px-1 text-[9px] sm:text-[11px] leading-none">
-        <span className="font-mono font-bold text-cozy-brown/70">
+      <div className="w-full flex items-center justify-between px-0.5 sm:px-1 text-[8px] sm:text-[11px] leading-none min-w-0">
+        <span className="font-mono font-bold text-cozy-brown/70 flex-shrink-0">
           #{cellValue}
         </span>
 
         {hasActiveBullet && (
-          <span className="inline-flex items-center gap-1 font-fredoka font-semibold text-[8px] sm:text-[10px] bg-cozy-amber text-cozy-brown-dark px-1.5 py-0.5 rounded-full shadow-xs">
+          <span className="inline-flex items-center gap-0.5 font-fredoka font-semibold text-[7px] sm:text-[10px] bg-cozy-amber text-cozy-brown-dark px-1 sm:px-1.5 py-0.5 rounded-full shadow-xs flex-shrink-0">
             <span>⭐</span>
-            <span>Bullet</span>
+            <span className="hidden sm:inline">Bullet</span>
           </span>
         )}
 
         {destroyed && (
-          <span className="text-[8px] sm:text-[10px] font-fredoka font-medium text-cozy-brown/50">
-            Poofed
+          <span className="text-[7px] sm:text-[10px] font-fredoka font-medium text-cozy-brown/50 truncate">
+            {activePackId === "dragon-ball" ? "KO" : "Poofed"}
           </span>
         )}
       </div>
 
-      {/* Center: Scaled Stickman Artwork (occupies 45-55% of cell height) */}
-      <div className="w-full flex-1 flex items-center justify-center my-0.5">
-        <div className="relative w-8 h-10 sm:w-14 sm:h-16 md:w-18 md:h-20 flex items-center justify-center max-w-full">
-          <svg
-            viewBox="0 0 100 120"
-            className="w-full h-full overflow-visible"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            {/* Base Pedestal / Ground Line */}
-            <ellipse
-              cx="50"
-              cy="112"
-              rx="24"
-              ry="4"
-              fill="none"
-              stroke="#D4C5B3"
-              strokeWidth="2"
-              strokeDasharray="3 3"
-            />
-
-            {!destroyed && (
-              <g stroke="#75685C" strokeWidth="3.5" fill="none">
-                {/* STAGE 1: HEAD & SWEET EXPRESSIVE FACE */}
-                {progress >= 1 && (
-                  <g>
-                    {/* Head circle with soft ivory fill */}
-                    <circle cx="50" cy="28" r="16" fill="#FDFBF7" stroke="#75685C" strokeWidth="3.5" />
-                    
-                    {/* Blushing peach cheeks */}
-                    <circle cx="39" cy="32" r="2.5" fill="#E8B5A5" stroke="none" />
-                    <circle cx="61" cy="32" r="2.5" fill="#E8B5A5" stroke="none" />
-
-                    {/* Smiling eyes */}
-                    <circle cx="43" cy="26" r="2" fill="#75685C" stroke="none" />
-                    <circle cx="57" cy="26" r="2" fill="#75685C" stroke="none" />
-
-                    {/* Gentle smile */}
-                    <path d="M 45 32 Q 50 36 55 32" stroke="#75685C" strokeWidth="2" fill="none" />
-
-                    {/* Hair tuft */}
-                    <path d="M 48 12 Q 50 7 52 12" stroke="#75685C" strokeWidth="2.5" fill="none" />
-                  </g>
-                )}
-
-                {/* STAGE 2: TORSO & COZY SCARF */}
-                {progress >= 2 && (
-                  <g>
-                    {/* Torso spine */}
-                    <line x1="50" y1="44" x2="50" y2="80" strokeWidth="4" />
-                    {/* Soft amber scarf */}
-                    <path
-                      d="M 42 44 C 46 48, 54 48, 58 44 C 59 49, 53 53, 47 51 Z"
-                      fill="#D9AA61"
-                      stroke="#75685C"
-                      strokeWidth="2"
-                    />
-                    <line x1="51" y1="49" x2="56" y2="58" stroke="#D9AA61" strokeWidth="3" />
-                  </g>
-                )}
-
-                {/* STAGE 3: LEGS */}
-                {progress >= 3 && (
-                  <g>
-                    {/* Left Leg */}
-                    <line x1="50" y1="80" x2="35" y2="110" strokeWidth="3.5" />
-                    <line x1="35" y1="110" x2="29" y2="110" strokeWidth="3.5" />
-
-                    {/* Right Leg */}
-                    <line x1="50" y1="80" x2="65" y2="110" strokeWidth="3.5" />
-                    <line x1="65" y1="110" x2="71" y2="110" strokeWidth="3.5" />
-                  </g>
-                )}
-
-                {/* STAGE 4: ARMS */}
-                {progress >= 4 && (
-                  <g>
-                    {/* Left Arm waving */}
-                    <path d="M 50 54 Q 35 45 24 36" strokeWidth="3.5" />
-                    {/* Right Arm */}
-                    <line x1="50" y1="54" x2="75" y2="66" strokeWidth="3.5" />
-                  </g>
-                )}
-
-                {/* STAGE 5: PLAYFUL BLUNDERBUSS / CORK BLASTER */}
-                {progress >= 5 && hasGun && (
-                  <g>
-                    {/* Barrel */}
-                    <line x1="73" y1="66" x2="94" y2="56" stroke="#8C6548" strokeWidth="4.5" />
-                    {/* Brass Muzzle */}
-                    <path d="M 92 51 L 98 54 L 98 58 L 92 61 Z" fill="#D9AA61" stroke="#75685C" strokeWidth="1.5" />
-                    {/* Stock */}
-                    <line x1="67" y1="70" x2="73" y2="66" stroke="#8C6548" strokeWidth="3.5" />
-                    {/* Dangling cork */}
-                    <path d="M 98 56 Q 102 64 100 70" stroke="#C4B097" strokeWidth="1.5" strokeDasharray="2 2" fill="none" />
-                    <ellipse cx="100" cy="72" rx="3" ry="2" fill="#E8B5A5" stroke="#75685C" strokeWidth="1" />
-                  </g>
-                )}
-              </g>
-            )}
-
-            {/* DESTROYED STATE */}
-            {destroyed && (
-              <g>
-                {/* Faint head outline */}
-                <circle cx="50" cy="28" r="15" fill="#F4EDE2" stroke="#B0A08E" strokeWidth="2" strokeDasharray="3 3" />
-                {/* Dizzy X eyes */}
-                <g stroke="#A77B59" strokeWidth="2">
-                  <line x1="41" y1="24" x2="45" y2="28" />
-                  <line x1="45" y1="24" x2="41" y2="28" />
-                  <line x1="55" y1="24" x2="59" y2="28" />
-                  <line x1="59" y1="24" x2="55" y2="28" />
-                  <path d="M 45 33 Q 50 31 55 33" fill="none" />
-                </g>
-                {/* Soft pencil poof cloud */}
-                <path
-                  d="M 32 75 Q 26 65 36 58 Q 32 46 46 48 Q 52 38 62 44 Q 74 38 76 52 Q 86 58 80 70 Q 84 82 72 86 Q 66 96 52 90 Q 40 94 36 84 Z"
-                  fill="#EDE3D5"
-                  fillOpacity="0.6"
-                  stroke="#C4B097"
-                  strokeWidth="1.5"
-                />
-                {/* Crayon Cross-out Lines */}
-                <line x1="22" y1="18" x2="78" y2="104" stroke="#A77B59" strokeWidth="3" strokeLinecap="round" />
-                <line x1="78" y1="18" x2="22" y2="104" stroke="#A77B59" strokeWidth="3" strokeLinecap="round" />
-              </g>
-            )}
-          </svg>
+      {/* Center: Scaled Character Artwork */}
+      <div className="w-full flex-1 flex items-center justify-center my-0.5 min-h-0">
+        <div className="relative w-10 h-14 sm:w-16 sm:h-20 md:w-20 md:h-24 flex items-center justify-center max-w-full">
+          <CharacterCellRenderer
+            packId={activePackId}
+            characterId={characterId || "classic-stickman"}
+            progress={progress}
+            isDestroyed={destroyed}
+            hasActiveBullet={hasActiveBullet}
+            frame={frame}
+            showAura={hasActiveBullet || progress === 5}
+          />
         </div>
       </div>
 
-      {/* Bottom Bar: Progression Label */}
+      {/* Bottom Bar: Character Name + Progression Label */}
       <div className="w-full text-center py-0.5 overflow-hidden">
-        <span
-          className={`text-[9px] sm:text-[11px] font-fredoka font-medium tracking-tight truncate block px-0.5 ${
-            destroyed
-              ? "text-cozy-brown/40 line-through"
-              : progress === 5
-              ? "text-cozy-amber-dark font-bold"
-              : isTargetable
-              ? "text-cozy-brown-dark font-semibold"
-              : "text-cozy-brown/80"
-          }`}
-        >
-          {CELL_PROGRESS_LABELS[progress]}
-        </span>
+        {character && activePackId === "dragon-ball" ? (
+          <div className="flex flex-col items-center leading-tight">
+            <span className="text-[9px] sm:text-[10px] font-fredoka font-bold text-cozy-brown-dark truncate max-w-full">
+              {character.name}
+            </span>
+            <span
+              className={`text-[8px] sm:text-[10px] font-fredoka tracking-tight truncate max-w-full ${
+                destroyed
+                  ? "text-cozy-brown/40 line-through"
+                  : progress === 5
+                  ? "text-cozy-amber-dark font-bold"
+                  : "text-cozy-brown/70"
+              }`}
+            >
+              {destroyed ? "Defeated" : CELL_PROGRESS_LABELS[progress]}
+            </span>
+          </div>
+        ) : (
+          <span
+            className={`text-[9px] sm:text-[11px] font-fredoka font-medium tracking-tight truncate block px-0.5 ${
+              destroyed
+                ? "text-cozy-brown/40 line-through"
+                : progress === 5
+                ? "text-cozy-amber-dark font-bold"
+                : isTargetable
+                ? "text-cozy-brown-dark font-semibold"
+                : "text-cozy-brown/80"
+            }`}
+          >
+            {CELL_PROGRESS_LABELS[progress]}
+          </span>
+        )}
       </div>
     </div>
   );

@@ -1,17 +1,20 @@
 import React, { useEffect } from "react";
 import type { MatchState, PlayerState, CellValue } from "@pageshooter/shared";
 import { CELL_VALUES } from "@pageshooter/shared";
+import type { MatchVisualConfig } from "../anime/types.js";
 import { soundManager } from "../audio/soundManager.js";
 import { StickmanCell } from "./StickmanCell.js";
 
 interface VictoryModalProps {
   matchState: MatchState;
+  visualConfig?: MatchVisualConfig | null;
   onPlayAgain: () => void;
   onNewMatch: () => void;
 }
 
 export const VictoryModal: React.FC<VictoryModalProps> = ({
   matchState,
+  visualConfig,
   onPlayAgain,
   onNewMatch
 }) => {
@@ -33,13 +36,13 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#241A12]/85 backdrop-blur-md p-2.5 sm:p-6 overflow-y-auto overflow-x-hidden select-none animate-in fade-in duration-300"
+      className="min-h-screen w-full flex items-center justify-center bg-[#241A12]/85 backdrop-blur-md p-2.5 sm:p-6 select-none overflow-x-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="victory-title"
     >
       {/* Central Victory Panel */}
-      <div className="w-full max-w-[340px] sm:max-w-xl min-w-0 bg-[#FFFDF9] border-2 border-cozy-parchment rounded-3xl p-3.5 sm:p-7 md:p-8 text-center shadow-2xl relative my-auto max-h-[96vh] overflow-y-auto overflow-x-hidden mx-auto animate-in zoom-in-95 duration-400 ease-out">
+      <div className="w-full max-w-[335px] sm:max-w-xl min-w-0 bg-[#FFFDF9] border-2 border-cozy-parchment rounded-3xl p-3 sm:p-7 md:p-8 text-center shadow-2xl relative my-auto max-h-[96vh] overflow-y-auto overflow-x-hidden">
         {/* A. Champion Emblem */}
         <div className="mb-1.5 sm:mb-2">
           <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto flex items-center justify-center rounded-2xl bg-[#FAF1DF] border-2 border-[#D9AA61] shadow-xs">
@@ -96,17 +99,25 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           </div>
 
           <div className="grid grid-cols-5 gap-0.5 sm:gap-2 max-w-lg mx-auto border border-cozy-cell-border rounded-xl bg-[#FFFDF9] p-0.5 sm:p-1 shadow-inner w-full min-w-0">
-            {CELL_VALUES.map((val: CellValue) => (
-              <div
-                key={val}
-                className="h-20 sm:h-34 border-r last:border-r-0 border-cozy-cell-border flex items-center justify-center overflow-hidden min-w-0"
-              >
-                <StickmanCell
-                  cell={winner.cells[val]}
-                  cellValue={val}
-                />
-              </div>
-            ))}
+            {CELL_VALUES.map((val: CellValue) => {
+              const playerVisual = visualConfig?.playerVisuals[winner.playerId];
+              const packId = playerVisual?.animePackId || "dragon-ball";
+              const characterId = playerVisual?.characterAssignments[val];
+
+              return (
+                <div
+                  key={val}
+                  className="h-20 sm:h-34 border-r last:border-r-0 border-cozy-cell-border flex items-center justify-center overflow-hidden min-w-0"
+                >
+                  <StickmanCell
+                    cell={winner.cells[val]}
+                    cellValue={val}
+                    packId={packId}
+                    characterId={characterId}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
 

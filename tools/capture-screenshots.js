@@ -44,14 +44,24 @@ const server = http.createServer((req, res) => {
 
 function takeScreenshot(url, outputPath, width = 1280, height = 820) {
   return new Promise((resolve, reject) => {
+    const isMobile = width < 600;
     const args = [
       "--headless=new",
       "--disable-gpu",
       "--no-sandbox",
+      "--hide-scrollbars",
+      "--force-device-scale-factor=1",
       `--window-size=${width},${height}`,
-      `--screenshot=${outputPath}`,
-      url
+      `--screenshot=${outputPath}`
     ];
+
+    if (isMobile) {
+      args.push(
+        "--user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1"
+      );
+    }
+
+    args.push(url);
 
     const child = spawn(CHROME_PATH, args, { stdio: "ignore" });
     child.on("exit", (code) => {
