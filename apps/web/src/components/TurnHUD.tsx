@@ -38,11 +38,11 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
 
   return (
     <>
-      <header className="w-full bg-cozy-white border-b-2 border-cozy-parchment sticky top-0 z-40 px-3 sm:px-6 py-2 shadow-subtle select-none">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5">
+      <header className="w-full bg-cozy-white border-b-2 border-cozy-parchment z-30 px-3 sm:px-6 py-2.5 shadow-subtle select-none flex-shrink-0">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           {/* Logo & Turn Information */}
-          <div className="flex items-center gap-3">
-            <span className="text-xl">📖</span>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <span className="text-2xl">📖</span>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="font-fredoka font-bold text-cozy-brown-dark text-base tracking-tight">
@@ -60,18 +60,18 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
 
           {/* Current Turn Focus Banner */}
           {currentPlayer && (
-            <div className="flex items-center gap-3 bg-cozy-amber-light border border-cozy-amber/60 px-4 py-1.5 rounded-xl shadow-xs">
+            <div className="flex items-center gap-2.5 bg-cozy-amber-light border border-cozy-amber/60 px-3.5 py-1.5 rounded-xl shadow-xs flex-shrink-0">
               <span className="font-fredoka text-xs font-bold bg-cozy-amber text-cozy-brown-dark px-2 py-0.5 rounded-full">
                 {currentPlayer.position}
               </span>
               <div className="text-left">
-                <div className="text-xs font-fredoka font-bold text-cozy-brown-dark truncate max-w-[140px] sm:max-w-[200px]">
+                <div className="text-xs font-fredoka font-bold text-cozy-brown-dark truncate max-w-[140px] sm:max-w-[180px]">
                   {currentPlayer.username}
                 </div>
-                <div className="text-[10px] font-fredoka">
+                <div className="text-[10px] font-fredoka leading-tight">
                   {isAwaitingShot ? (
                     <span className="text-cozy-brown-dark font-bold">
-                      Select an opponent cell to shoot!
+                      Click an opponent cell to shoot!
                     </span>
                   ) : (
                     <span className="text-cozy-brown/80">Your turn to roll the book</span>
@@ -82,13 +82,13 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
           )}
 
           {/* Action Button & Sound Settings */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
             {/* Primary Action Button: Open Storybook */}
             {isAwaitingRoll && (
               <button
                 onClick={onRoll}
                 disabled={isRolling}
-                className="flex items-center gap-1.5 px-4 py-2 bg-cozy-amber hover:bg-cozy-amber-dark text-cozy-brown-dark font-fredoka font-bold text-xs sm:text-sm rounded-full transition-all shadow-xs active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2 bg-cozy-amber hover:bg-cozy-amber-dark text-cozy-brown-dark font-fredoka font-bold text-xs sm:text-sm rounded-full transition-all shadow-xs active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none cursor-pointer flex-shrink-0"
               >
                 <span>📖</span>
                 <span>Open Storybook</span>
@@ -96,13 +96,13 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
             )}
 
             {isAwaitingShot && (
-              <div className="px-3.5 py-1.5 bg-cozy-peach-light border border-cozy-peach text-cozy-brown-dark font-fredoka font-bold text-xs rounded-full">
-                Aim at an opponent cell
+              <div className="px-3.5 py-1.5 bg-[#F6EBE5] border border-cozy-peach text-cozy-brown-dark font-fredoka font-bold text-xs rounded-full flex-shrink-0">
+                Aiming at opponent...
               </div>
             )}
 
             {/* Sound Controls */}
-            <div className="flex items-center gap-1.5 bg-cozy-parchment/40 border border-cozy-parchment px-2 py-1.5 rounded-full">
+            <div className="flex items-center gap-1.5 bg-cozy-parchment/40 border border-cozy-parchment px-2 py-1.5 rounded-full flex-shrink-0">
               <button
                 onClick={handleToggleMute}
                 aria-label={soundSettings.muted ? "Unmute audio" : "Mute audio"}
@@ -126,7 +126,7 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
             {/* Reset / Abandon Button */}
             <button
               onClick={() => setShowConfirmReset(true)}
-              className="text-xs font-fredoka font-semibold text-cozy-brown hover:text-cozy-brown-dark border border-cozy-parchment hover:border-cozy-brown/40 px-2.5 py-1.5 rounded-full transition-colors cursor-pointer bg-cozy-parchment/30"
+              className="text-xs font-fredoka font-semibold text-cozy-brown hover:text-cozy-brown-dark border border-cozy-parchment hover:border-cozy-brown/40 px-2.5 py-1.5 rounded-full transition-colors cursor-pointer bg-cozy-parchment/30 flex-shrink-0"
               title="Reset match and return to setup"
             >
               Reset

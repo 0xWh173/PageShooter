@@ -168,8 +168,8 @@ describe("React Components QA & Regression Tests", () => {
         />
       );
 
-      const targetBtn = screen.getByText(/TARGET/i);
-      fireEvent.click(targetBtn);
+      const cellElement = screen.getByRole("button", { name: /Cell 6/i });
+      fireEvent.click(cellElement);
       expect(onSelect).toHaveBeenCalledTimes(1);
       expect(onSelect).toHaveBeenCalledWith(6);
     });

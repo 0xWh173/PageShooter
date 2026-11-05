@@ -359,8 +359,8 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-notebook-pattern text-cozy-brown flex flex-col justify-between selection:bg-cozy-gold selection:text-cozy-brown">
-      {/* Turn HUD Header */}
+    <div className="min-h-screen bg-cozy-ivory text-cozy-brown-dark flex flex-col justify-between selection:bg-cozy-amber selection:text-cozy-brown-dark">
+      {/* Turn HUD Header (Fixed height flow, no overlap) */}
       <TurnHUD
         matchState={matchState}
         isRolling={cinematicData !== null || combatData !== null}
@@ -369,7 +369,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main Matrix Battlefield Area */}
-      <main className="flex-1 flex flex-col justify-center py-2 sm:py-4">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-2 sm:px-4 py-3 flex flex-col">
         <Battlefield
           matchState={matchState}
           onSelectTarget={handleSelectTarget}
@@ -378,7 +378,7 @@ export const App: React.FC = () => {
       </main>
 
       {/* Footer / Status bar */}
-      <footer className="w-full border-t border-[#E2D3BE] bg-[#FFFDF9]/60 py-2 px-4 text-center text-xs font-hand text-cozy-brown-light">
+      <footer className="w-full border-t border-cozy-parchment bg-cozy-white/60 py-2 px-4 text-center text-xs font-fredoka text-cozy-brown/70 flex-shrink-0">
         <span>PageShooter • Cozy Storybook Edition • Auto-saved to browser</span>
       </footer>
 

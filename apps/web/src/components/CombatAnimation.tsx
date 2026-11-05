@@ -29,91 +29,82 @@ export const CombatAnimation: React.FC<CombatAnimationProps> = ({
   }, [onComplete]);
 
   useEffect(() => {
-    // 0.0s - 0.4s: Aim & Target Lock
+    // 0.0s - 0.5s: Aim & Target Lock
     const t1 = setTimeout(() => {
       setPhase("FIRE");
       soundManager.playGunshot();
-    }, 450);
+    }, 500);
 
-    // 0.45s - 0.9s: Projectile Flies
+    // 0.5s - 1.0s: Star Projectile Flies
     const t2 = setTimeout(() => {
       setPhase("FLY");
-    }, 850);
+    }, 1000);
 
-    // 0.9s - 1.4s: Impact Burst & Pencil Particles
+    // 1.0s - 1.6s: Impact Burst & Starburst
     const t3 = setTimeout(() => {
       setPhase("IMPACT");
       soundManager.playCellDestroyed();
-    }, 1300);
+    }, 1500);
 
-    // 1.4s - 2.0s: Resolution & Toast
+    // 1.6s: Resolution reached (Continue button appears)
     const t4 = setTimeout(() => {
       setPhase("RESOLVE");
-    }, 1750);
-
-    // 2.2s: Complete
-    const t5 = setTimeout(() => {
-      finish();
-    }, 2200);
+    }, 2000);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
       clearTimeout(t4);
-      clearTimeout(t5);
     };
-  }, [finish]);
+  }, []);
 
   return (
     <div
-      onClick={finish}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-cozy-brown-dark/50 backdrop-blur-xs p-4 animate-in fade-in select-none cursor-pointer"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#2B2118]/80 backdrop-blur-sm p-4 select-none animate-in fade-in"
+      role="dialog"
+      aria-modal="true"
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="max-w-md w-full bg-cozy-white border-2 border-cozy-brown/40 rounded-3xl p-5 sm:p-6 text-center shadow-modal relative overflow-hidden"
-      >
-        {/* Skip button */}
-        <button
-          onClick={finish}
-          className="absolute top-3 right-3 text-xs font-fredoka font-semibold text-cozy-brown/70 hover:text-cozy-brown-dark bg-cozy-parchment/60 hover:bg-cozy-parchment px-2.5 py-1 rounded-full border border-cozy-brown/20 transition-colors"
-        >
-          Skip ⏩
-        </button>
+      {/* Single Modal Frame (No nested outer/inner boxes) */}
+      <div className="w-full max-w-lg bg-[#FFFDF9] border-2 border-cozy-parchment rounded-3xl p-6 sm:p-8 text-center shadow-2xl relative">
+        {/* Skip button in corner */}
+        {phase !== "RESOLVE" && (
+          <button
+            onClick={finish}
+            className="absolute top-4 right-4 text-xs font-fredoka font-medium text-cozy-brown hover:text-cozy-brown-dark bg-cozy-parchment/40 hover:bg-cozy-parchment px-2.5 py-1 rounded-full border border-cozy-cell-border transition-colors cursor-pointer"
+          >
+            Skip ⏩
+          </button>
+        )}
 
-        {/* Phase Header Pill */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-cozy-peach-light border border-cozy-peach rounded-full text-xs font-fredoka font-bold text-cozy-brown-dark mb-3">
-          <span>🎯</span>
-          <span>
-            {phase === "AIM" && "Target Locked"}
-            {phase === "FIRE" && "Blaster Firing!"}
-            {phase === "FLY" && "Star Shot Traveling..."}
-            {(phase === "IMPACT" || phase === "RESOLVE") && "Direct Hit!"}
-          </span>
+        {/* Header Indicator */}
+        <div className="text-xs font-fredoka font-bold text-cozy-brown uppercase tracking-wider mb-4">
+          Folio Duel
         </div>
 
-        {/* Dynamic Continuous Stage */}
-        <div className="relative w-full h-36 bg-[#FDFBF7] border border-cozy-cell-border rounded-2xl flex items-center justify-between px-5 my-2 overflow-hidden shadow-inner">
+        {/* Central Combat Arena: Shooter -> Projectile -> Target */}
+        <div className="flex items-center justify-between px-4 sm:px-8 py-3 my-2 min-h-[140px] relative">
           {/* Shooter Stickman */}
-          <div className="flex flex-col items-center">
-            <span className="font-fredoka text-xs font-bold text-cozy-brown-dark">
+          <div className="flex flex-col items-center w-28">
+            <span className="font-fredoka text-xs font-bold text-cozy-brown-dark truncate max-w-full">
               {shooterPosition} ({shooterName})
             </span>
             <div
-              className={`mt-1 transition-transform duration-200 ${
+              className={`mt-2 transition-transform duration-200 ${
                 phase === "FIRE" ? "scale-110" : "scale-100"
               }`}
             >
-              <svg viewBox="0 0 60 70" className="w-14 h-16">
-                <circle cx="30" cy="18" r="10" fill="#FDFBF7" stroke="#75685C" strokeWidth="2.5" />
+              <svg viewBox="0 0 60 70" className="w-16 h-18">
+                {/* Head */}
+                <circle cx="30" cy="18" r="10" fill="#FAF6EE" stroke="#75685C" strokeWidth="2.5" />
                 <circle cx="27" cy="17" r="1.2" fill="#75685C" />
                 <circle cx="33" cy="17" r="1.2" fill="#75685C" />
                 <path d="M 28 21 Q 30 23 32 21" stroke="#75685C" strokeWidth="1.5" fill="none" />
+                {/* Spine & Legs */}
                 <line x1="30" y1="28" x2="30" y2="50" stroke="#75685C" strokeWidth="3" />
                 <line x1="30" y1="50" x2="20" y2="68" stroke="#75685C" strokeWidth="2.5" />
                 <line x1="30" y1="50" x2="40" y2="68" stroke="#75685C" strokeWidth="2.5" />
-                {/* Arm & Blaster */}
+                {/* Blaster Arm */}
                 <line x1="30" y1="36" x2="48" y2="33" stroke="#75685C" strokeWidth="3" />
                 <line x1="48" y1="33" x2="56" y2="29" stroke="#D9AA61" strokeWidth="4" />
                 {phase === "FIRE" && (
@@ -122,46 +113,51 @@ export const CombatAnimation: React.FC<CombatAnimationProps> = ({
               </svg>
             </div>
             {phase === "FIRE" && (
-              <span className="text-[11px] font-fredoka font-bold text-cozy-amber-dark animate-ping">
+              <span className="text-[11px] font-fredoka font-bold text-cozy-amber-dark">
                 POP! 💨
               </span>
             )}
           </div>
 
-          {/* Flying Projectile */}
-          {(phase === "FLY" || phase === "FIRE") && (
-            <div
-              className={`text-2xl transition-all duration-400 ease-out ${
-                phase === "FLY" ? "translate-x-14 scale-125" : "translate-x-0 scale-90"
-              }`}
-            >
-              ⭐
-            </div>
-          )}
+          {/* Projectile Flight Path / Impact Burst */}
+          <div className="flex-1 flex items-center justify-center relative h-16">
+            {phase === "AIM" && (
+              <div className="text-cozy-brown/40 text-xs font-mono tracking-widest">
+                - - - - 🎯
+              </div>
+            )}
 
-          {/* Impact Burst Overlay */}
-          {phase === "IMPACT" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-cozy-peach-light/40 animate-pop z-10">
-              <div className="flex flex-col items-center">
-                <span className="text-3xl">💥</span>
-                <span className="font-fredoka text-lg font-black text-cozy-brown-dark">
+            {(phase === "FIRE" || phase === "FLY") && (
+              <div
+                className={`text-3xl transition-all duration-500 ease-out ${
+                  phase === "FLY" ? "translate-x-12 scale-125" : "-translate-x-12 scale-90"
+                }`}
+              >
+                ⭐
+              </div>
+            )}
+
+            {(phase === "IMPACT" || phase === "RESOLVE") && (
+              <div className="flex flex-col items-center animate-in zoom-in-75 duration-200">
+                <span className="text-4xl">💥</span>
+                <span className="font-fredoka text-sm font-bold text-cozy-brown-dark mt-0.5">
                   POOF!
                 </span>
-                <span className="text-xs text-cozy-brown">✦ ✧ ✦</span>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Target Stickman */}
-          <div className="flex flex-col items-center">
-            <span className="font-fredoka text-xs font-bold text-cozy-brown-dark">
+          <div className="flex flex-col items-center w-28">
+            <span className="font-fredoka text-xs font-bold text-cozy-brown-dark truncate max-w-full">
               {victimPosition} ({victimName})
             </span>
-            <div className="mt-1 relative">
-              <svg viewBox="0 0 60 70" className="w-14 h-16">
-                <circle cx="30" cy="18" r="10" fill="#FDFBF7" stroke="#75685C" strokeWidth="2.5" />
+            <div className="mt-2 relative">
+              <svg viewBox="0 0 60 70" className="w-16 h-18">
+                {/* Head */}
+                <circle cx="30" cy="18" r="10" fill="#FAF6EE" stroke="#75685C" strokeWidth="2.5" />
                 {phase === "IMPACT" || phase === "RESOLVE" ? (
-                  // Dizzy X eyes
+                  // Dizzy X eyes on hit
                   <g stroke="#A77B59" strokeWidth="1.5">
                     <line x1="24" y1="15" x2="28" y2="19" />
                     <line x1="28" y1="15" x2="24" y2="19" />
@@ -174,31 +170,34 @@ export const CombatAnimation: React.FC<CombatAnimationProps> = ({
                   <g>
                     <circle cx="27" cy="17" r="1.5" fill="#75685C" />
                     <circle cx="33" cy="17" r="1.5" fill="#75685C" />
+                    <path d="M 27 22 Q 30 24 33 22" stroke="#75685C" strokeWidth="1" fill="none" />
                   </g>
                 )}
+                {/* Spine & Limbs */}
                 <line x1="30" y1="28" x2="30" y2="50" stroke="#75685C" strokeWidth="3" />
                 <line x1="30" y1="50" x2="20" y2="68" stroke="#75685C" strokeWidth="2.5" />
                 <line x1="30" y1="50" x2="40" y2="68" stroke="#75685C" strokeWidth="2.5" />
                 <line x1="30" y1="36" x2="16" y2="44" stroke="#75685C" strokeWidth="2.5" />
                 <line x1="30" y1="36" x2="44" y2="44" stroke="#75685C" strokeWidth="2.5" />
 
+                {/* Pencil scribble cross-out on hit */}
                 {(phase === "IMPACT" || phase === "RESOLVE") && (
                   <g stroke="#A77B59" strokeWidth="3" strokeLinecap="round">
-                    <line x1="12" y1="10" x2="48" y2="62" />
-                    <line x1="48" y1="10" x2="12" y2="62" />
+                    <line x1="10" y1="10" x2="50" y2="62" />
+                    <line x1="50" y1="10" x2="10" y2="62" />
                   </g>
                 )}
               </svg>
             </div>
-            <span className="text-[10px] font-fredoka font-semibold text-cozy-brown">
+            <span className="text-[11px] font-fredoka font-medium text-cozy-brown mt-0.5">
               Cell #{targetCellValue}
             </span>
           </div>
         </div>
 
-        {/* Public Toast Notification */}
-        <div className="bg-[#FAF7F0] border border-cozy-cell-border rounded-xl p-2.5 mt-2">
-          <p className="font-fredoka text-xs sm:text-sm font-semibold text-cozy-brown-dark">
+        {/* Result Message Banner */}
+        <div className="mt-4 py-2.5 px-4 rounded-xl bg-cozy-parchment/30 border border-cozy-cell-border text-center">
+          <p className="font-fredoka text-sm sm:text-base font-semibold text-cozy-brown-dark">
             {phase === "RESOLVE" || phase === "IMPACT" ? (
               <span>
                 ⭐ <strong>{shooterName}</strong> popped{" "}
@@ -206,19 +205,22 @@ export const CombatAnimation: React.FC<CombatAnimationProps> = ({
               </span>
             ) : (
               <span>
-                🎯 <strong>{shooterName}</strong> is aiming at{" "}
+                🎯 <strong>{shooterName}</strong> is aiming cork blaster at{" "}
                 <strong>{victimName}</strong>'s Cell #{targetCellValue}...
               </span>
             )}
           </p>
         </div>
 
-        <button
-          onClick={finish}
-          className="mt-3.5 px-6 py-2 bg-cozy-amber hover:bg-cozy-amber-dark text-cozy-brown-dark font-fredoka font-bold text-xs rounded-full shadow-xs transition-colors"
-        >
-          Continue ➔
-        </button>
+        {/* Continue Button: ONLY appears after animation completes */}
+        {phase === "RESOLVE" && (
+          <button
+            onClick={finish}
+            className="mt-5 px-8 py-2.5 bg-cozy-amber hover:bg-cozy-amber-dark text-cozy-brown-dark font-fredoka font-bold text-sm rounded-full shadow-md transition-all active:scale-95 cursor-pointer"
+          >
+            Continue ➔
+          </button>
+        )}
       </div>
     </div>
   );

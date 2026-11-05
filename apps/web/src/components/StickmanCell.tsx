@@ -33,11 +33,11 @@ export const StickmanCell: React.FC<StickmanCellProps> = ({
       tabIndex={isTargetable ? 0 : undefined}
       aria-label={`Cell ${cellValue}: ${destroyed ? "Destroyed" : CELL_PROGRESS_LABELS[progress]}`}
       className={`
-        relative w-full h-full flex flex-col justify-between items-center p-2 transition-colors duration-150 select-none
+        relative w-full h-full flex flex-col justify-between items-center p-2 transition-all duration-150 select-none
         ${destroyed
-          ? "bg-[#F4EDE2]/50 text-cozy-brown/40"
+          ? "bg-[#F4EDE2]/50 text-cozy-brown/40 cursor-default pointer-events-none"
           : isTargetable
-          ? "bg-cozy-peach-light hover:bg-[#F2DCD3] cursor-pointer touch-manipulation focus:outline-none focus:ring-2 focus:ring-cozy-peach"
+          ? "bg-transparent hover:bg-[#FAF1EC] hover:ring-2 hover:ring-inset hover:ring-cozy-peach/70 cursor-pointer touch-manipulation focus:outline-none focus:ring-2 focus:ring-inset focus:ring-cozy-peach active:bg-[#F2DCD3]"
           : "bg-transparent text-cozy-brown-dark"
         }
       `}
@@ -189,40 +189,25 @@ export const StickmanCell: React.FC<StickmanCellProps> = ({
                 <line x1="78" y1="18" x2="22" y2="104" stroke="#A77B59" strokeWidth="3" strokeLinecap="round" />
               </g>
             )}
-
-            {/* TARGETING RETICLE */}
-            {isTargetable && !destroyed && (
-              <g stroke="#E8B5A5" strokeWidth="2">
-                <circle cx="50" cy="56" r="34" fill="none" strokeDasharray="4 4" />
-                <line x1="50" y1="16" x2="50" y2="24" />
-                <line x1="50" y1="88" x2="50" y2="96" />
-                <line x1="10" y1="56" x2="18" y2="56" />
-                <line x1="82" y1="56" x2="90" y2="56" />
-              </g>
-            )}
           </svg>
         </div>
       </div>
 
-      {/* Bottom Bar: Progression Label or Target Prompt */}
+      {/* Bottom Bar: Progression Label */}
       <div className="w-full text-center py-0.5">
-        {isTargetable && !destroyed ? (
-          <span className="inline-block text-[10px] font-fredoka font-semibold text-cozy-brown-dark bg-[#F2D0C6] px-2 py-0.5 rounded-full border border-cozy-peach">
-            Target
-          </span>
-        ) : (
-          <span
-            className={`text-[11px] font-fredoka font-medium tracking-tight ${
-              destroyed
-                ? "text-cozy-brown/40 line-through"
-                : progress === 5
-                ? "text-cozy-amber-dark font-bold"
-                : "text-cozy-brown/80"
-            }`}
-          >
-            {CELL_PROGRESS_LABELS[progress]}
-          </span>
-        )}
+        <span
+          className={`text-[11px] font-fredoka font-medium tracking-tight ${
+            destroyed
+              ? "text-cozy-brown/40 line-through"
+              : progress === 5
+              ? "text-cozy-amber-dark font-bold"
+              : isTargetable
+              ? "text-cozy-brown-dark font-semibold"
+              : "text-cozy-brown/80"
+          }`}
+        >
+          {CELL_PROGRESS_LABELS[progress]}
+        </span>
       </div>
     </div>
   );

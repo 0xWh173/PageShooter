@@ -36,7 +36,7 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
             {/* ======================================================== */}
             
             {/* Pinned Left Corner Header */}
-            <div className="sticky left-0 z-20 bg-cozy-parchment border-b-2 border-r-2 border-cozy-brown/30 flex flex-col items-center justify-center p-2 text-center shadow-xs">
+            <div className="sticky left-0 z-20 bg-cozy-parchment border-b-2 border-r-2 border-cozy-brown/30 flex flex-col items-center justify-center p-2 text-center shadow-xs h-[72px] min-h-[72px] max-h-[72px]">
               <span className="font-fredoka font-bold text-xs text-cozy-brown-dark uppercase tracking-wider">
                 Folio
               </span>
@@ -54,7 +54,7 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
                 <div
                   key={player.playerId}
                   className={`
-                    border-b-2 border-r border-cozy-cell-border p-2.5 flex flex-col items-center justify-center text-center transition-colors duration-200
+                    border-b-2 border-r border-cozy-cell-border px-2 py-1.5 flex flex-col items-center justify-center text-center transition-colors duration-150 h-[72px] min-h-[72px] max-h-[72px]
                     ${isEliminated
                       ? "bg-[#EDE4D5]/40 text-cozy-brown/40"
                       : isCurrentTurn
@@ -63,7 +63,7 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
                     }
                   `}
                 >
-                  <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <div className="flex items-center justify-center gap-1.5 mb-0.5">
                     <span
                       className={`
                         font-fredoka text-xs font-bold px-2 py-0.5 rounded-full
@@ -88,7 +88,7 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
                   </div>
 
                   <div
-                    className={`font-fredoka text-xs sm:text-sm font-semibold truncate max-w-[120px] ${
+                    className={`font-fredoka text-xs sm:text-sm font-semibold truncate w-full px-1 text-center ${
                       isEliminated
                         ? "text-cozy-brown/40 line-through"
                         : isCurrentTurn
@@ -118,7 +118,7 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
                   {/* Pinned Left Header for Row Value */}
                   <div
                     className={`
-                      sticky left-0 z-10 bg-cozy-parchment border-r-2 border-cozy-brown/30 flex flex-col items-center justify-center p-2 text-center shadow-xs h-[135px] sm:h-[145px]
+                      sticky left-0 z-10 bg-cozy-parchment border-r-2 border-cozy-brown/30 flex flex-col items-center justify-center p-2 text-center shadow-xs h-[140px] min-h-[140px] max-h-[140px]
                       ${!isLastRow ? "border-b border-cozy-brown/20" : ""}
                     `}
                   >
@@ -143,13 +143,13 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
                       <div
                         key={player.playerId + "_" + val}
                         className={`
-                          border-r border-cozy-cell-border h-[135px] sm:h-[145px] flex items-center justify-center transition-colors duration-150
+                          border-r border-cozy-cell-border h-[140px] min-h-[140px] max-h-[140px] flex items-center justify-center transition-colors duration-150
                           ${!isLastRow ? "border-b border-cozy-cell-border" : ""}
                           ${isEliminated
                             ? "bg-[#EDE4D5]/20"
                             : isCurrentTurn
-                            ? "bg-cozy-amber-light/40"
-                            : "bg-cozy-cell hover:bg-cozy-white"
+                            ? "bg-cozy-amber-light/30"
+                            : "bg-[#FDFBF7]"
                           }
                         `}
                       >

@@ -46,13 +46,13 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         </div>
 
         {/* Surviving Cells Shelf */}
-        <div className="bg-[#FAF7F0] border border-cozy-cell-border rounded-2xl p-3 mb-5">
-          <div className="text-xs font-fredoka font-bold uppercase tracking-wider text-cozy-brown mb-2.5">
+        <div className="bg-[#FAF7F0] border border-cozy-cell-border rounded-2xl p-3.5 mb-4">
+          <div className="text-xs font-fredoka font-bold uppercase tracking-wider text-cozy-brown mb-2">
             Surviving Folio Warriors
           </div>
-          <div className="grid grid-cols-5 gap-1.5 max-w-sm mx-auto border border-cozy-cell-border rounded-xl bg-cozy-white p-1">
+          <div className="grid grid-cols-5 gap-1 max-w-md mx-auto border border-cozy-cell-border rounded-xl bg-cozy-white p-1">
             {CELL_VALUES.map((val: CellValue) => (
-              <div key={val} className="h-28 border-r last:border-r-0 border-cozy-cell-border">
+              <div key={val} className="h-32 border-r last:border-r-0 border-cozy-cell-border">
                 <StickmanCell
                   cell={winner.cells[val]}
                   cellValue={val}

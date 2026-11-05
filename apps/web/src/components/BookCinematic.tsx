@@ -74,11 +74,11 @@ export const BookCinematic: React.FC<BookCinematicProps> = ({
   const tensAndHundreds = Math.floor(pageNumber / 10);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-cozy-brown-dark/50 backdrop-blur-xs p-4 animate-in fade-in select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2B2118]/80 backdrop-blur-sm p-4 animate-in fade-in select-none">
       {/* Fast Forward Skip Button */}
       <button
         onClick={handleSkip}
-        className="absolute top-6 right-6 text-xs font-fredoka font-semibold text-cozy-brown-dark bg-cozy-white border border-cozy-parchment hover:border-cozy-amber px-3.5 py-1.5 rounded-full shadow-subtle transition-all cursor-pointer flex items-center gap-1.5"
+        className="absolute top-6 right-6 text-xs font-fredoka font-semibold text-cozy-brown-dark bg-[#FFFDF9] border border-cozy-parchment hover:border-cozy-amber px-3.5 py-1.5 rounded-full shadow-subtle transition-all cursor-pointer flex items-center gap-1.5"
       >
         <span>Turn Leaf Fast</span>
         <span>⏩</span>
@@ -86,20 +86,20 @@ export const BookCinematic: React.FC<BookCinematicProps> = ({
 
       <div className="relative max-w-lg w-full flex flex-col items-center">
         {/* Storybook Tome Container */}
-        <div className="relative w-84 sm:w-96 h-64 sm:h-72 bg-[#6E4F36] rounded-2xl border-2 border-[#543823] shadow-modal flex overflow-hidden p-1.5">
+        <div className="relative w-84 sm:w-96 h-64 sm:h-72 bg-[#8A5B38] rounded-2xl border-2 border-[#5C3B20] shadow-2xl flex overflow-hidden p-2">
           {/* Leather spine with gold bookmark ribbon */}
-          <div className="w-8 h-full bg-[#543823] border-r border-[#3E2818] flex flex-col items-center justify-between py-4 rounded-l-xl">
+          <div className="w-7 h-full bg-[#5C3B20] border-r border-[#4A2D17] flex flex-col items-center justify-between py-4 rounded-l-xl flex-shrink-0">
             <span className="w-1.5 h-16 bg-cozy-amber rounded-full" />
           </div>
 
           {/* Left Parchment Page */}
-          <div className="flex-1 bg-[#FAF6EE] p-4 border-r border-[#E8D8C3] flex flex-col justify-between shadow-inner">
-            <div className="text-[11px] font-fredoka font-bold text-cozy-brown uppercase tracking-wider text-center border-b border-[#E8D8C3] pb-1">
+          <div className="flex-1 bg-[#FAF7F0] p-4 sm:p-5 border-r border-cozy-parchment flex flex-col justify-between">
+            <div className="text-[11px] font-fredoka font-bold text-cozy-brown-dark uppercase tracking-wider text-center border-b border-cozy-parchment pb-1">
               The Grand Storybook
             </div>
             <div className="flex flex-col items-center justify-center my-auto">
               <span className="text-xl text-cozy-amber">✦ ✦ ✦</span>
-              <p className="text-xs font-fredoka text-cozy-brown/80 text-center mt-2 italic px-2">
+              <p className="text-xs font-fredoka text-cozy-brown-dark/80 text-center mt-2 italic px-2">
                 "A turn of the leaf, a destined number, a stickman awakes."
               </p>
             </div>
@@ -108,20 +108,20 @@ export const BookCinematic: React.FC<BookCinematicProps> = ({
             </div>
           </div>
 
-          {/* Right Parchment Page (Flipping Page) */}
+          {/* Right Parchment Page (Identical Light Parchment Background) */}
           <div
             className={`
-              flex-1 bg-cozy-white p-4 flex flex-col justify-between shadow-[-4px_0_12px_rgba(117,104,92,0.06)] rounded-r-xl
+              flex-1 bg-[#FAF7F0] p-4 sm:p-5 flex flex-col justify-between rounded-r-xl
               ${phase === "FLIPPING" ? "animate-pulse" : ""}
             `}
           >
-            <div className="text-[11px] font-fredoka font-bold text-cozy-brown uppercase tracking-wider text-center border-b border-[#E8D8C3] pb-1">
+            <div className="text-[11px] font-fredoka font-bold text-cozy-brown-dark uppercase tracking-wider text-center border-b border-cozy-parchment pb-1">
               {phase === "FLIPPING" ? "Turning Page..." : "Destined Leaf"}
             </div>
 
             {/* Revealed Page Number */}
             <div className="flex flex-col items-center justify-center my-auto">
-              <div className="text-[11px] uppercase font-fredoka tracking-widest text-cozy-brown/70 mb-0.5">
+              <div className="text-[10px] uppercase font-fredoka font-bold tracking-widest text-cozy-brown/80 mb-0.5">
                 Folio
               </div>
               <div className="flex items-baseline font-fredoka">
@@ -130,19 +130,19 @@ export const BookCinematic: React.FC<BookCinematicProps> = ({
                     <span className="text-4xl sm:text-5xl font-black text-cozy-brown-dark">
                       {tensAndHundreds}
                     </span>
-                    <span className="text-5xl sm:text-6xl font-black text-cozy-amber-dark animate-bounce inline-block ml-0.5 drop-shadow-xs">
+                    <span className="text-5xl sm:text-6xl font-black text-[#B87A28] inline-block ml-0.5">
                       {outcome}
                     </span>
                   </>
                 ) : (
-                  <span className="text-4xl sm:text-5xl font-black text-cozy-brown/60 font-mono">
+                  <span className="text-4xl sm:text-5xl font-black text-cozy-brown-dark/70 font-mono">
                     {displayPage}
                   </span>
                 )}
               </div>
 
               {(phase === "REVEAL" || phase === "CONSEQUENCE") && (
-                <div className="mt-2 px-3 py-0.5 bg-cozy-amber-light border border-cozy-amber/60 rounded-full text-xs font-fredoka font-bold text-cozy-brown-dark flex items-center gap-1 shadow-xs">
+                <div className="mt-2 px-3 py-0.5 bg-[#F9EED9] border border-cozy-amber/80 rounded-full text-xs font-fredoka font-bold text-cozy-brown-dark flex items-center gap-1 shadow-xs">
                   <span>⭐</span>
                   <span>Target Cell #{outcome}</span>
                 </div>
@@ -159,7 +159,7 @@ export const BookCinematic: React.FC<BookCinematicProps> = ({
         <div className="mt-4 text-center max-w-md px-4">
           <div
             className={`
-              bg-cozy-white border-2 border-cozy-amber px-5 py-2 rounded-xl shadow-subtle transition-all duration-400
+              bg-[#FFFDF9] border-2 border-cozy-amber px-5 py-2.5 rounded-2xl shadow-subtle transition-all duration-300
               ${phase === "CONSEQUENCE"
                 ? "opacity-100 scale-100"
                 : "opacity-0 scale-95"
