@@ -13,11 +13,14 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
+    "manual-test": "tsx tools/manual-simulator/src/index.ts",
     "typecheck": "tsc -b",
     "lint": "tsc -b --noEmit"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "@vitest/coverage-v8": "^5.1.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.7.2",
     "vitest": "^5.1.0"
   }

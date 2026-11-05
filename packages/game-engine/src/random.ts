@@ -62,3 +62,4 @@ export function generatePageNumberForOutcome(outcome: CellValue, prng: PRNG = de
   const randIndex = Math.min(Math.floor(prng() * validPages.length), validPages.length - 1);
   return validPages[randIndex];
 }
+

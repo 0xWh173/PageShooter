@@ -14,7 +14,8 @@
     "composite": true,
     "baseUrl": ".",
     "paths": {
-      "@pageshooter/shared": ["./packages/shared/src/index.ts"]
+      "@pageshooter/shared": ["./packages/shared/src/index.ts"],
+      "@pageshooter/game-engine": ["./packages/game-engine/src/index.ts"]
     }
   }
 }

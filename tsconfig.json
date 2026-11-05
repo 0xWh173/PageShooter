@@ -2,6 +2,8 @@
   "files": [],
   "references": [
     { "path": "./packages/shared" },
-    { "path": "./packages/game-engine" }
+    { "path": "./packages/game-engine" },
+    { "path": "./tools/manual-simulator" }
   ]
 }
+
