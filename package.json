@@ -14,14 +14,19 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "manual-test": "tsx tools/manual-simulator/src/index.ts",
+    "verify:scenarios": "tsx tools/manual-simulator/src/verify-scenarios.ts",
     "typecheck": "tsc -b",
-    "lint": "tsc -b --noEmit"
+    "lint": "eslint \"packages/**/src/**/*.ts\" \"tools/**/src/**/*.ts\"",
+    "lint:check": "tsc -b --noEmit"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.6",
     "@vitest/coverage-v8": "^5.1.0",
+    "eslint": "^10.14.0",
     "tsx": "^4.23.15",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.72.1",
     "vitest": "^5.1.0"
   }
 }

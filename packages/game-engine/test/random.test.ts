@@ -3,15 +3,30 @@ import { CELL_VALUES } from "@pageshooter/shared";
 import {
   generateBookRoll,
   generatePageNumberForOutcome,
-  getValidPagesForOutcome
+  getValidPagesForOutcome,
+  secureRandomInt,
+  defaultPRNG
 } from "../src/random.js";
 
 describe("Randomness & Page Generation", () => {
-  it("generates outcomes only from [0, 2, 4, 6, 8]", () => {
+  it("generates outcomes only from [0, 2, 4, 6, 8] with secure randomness", () => {
     for (let i = 0; i < 500; i++) {
       const roll = generateBookRoll();
       expect(CELL_VALUES).toContain(roll.outcome);
     }
+  });
+
+  it("supports passing custom PRNG for deterministic testing", () => {
+    // PRNG returning 0 -> index 0 -> outcome 0
+    const roll0 = generateBookRoll(() => 0.01);
+    expect(roll0.outcome).toBe(0);
+
+    // PRNG returning 0.99 -> index 4 -> outcome 8
+    const roll8 = generateBookRoll(() => 0.99);
+    expect(roll8.outcome).toBe(8);
+
+    const page = generatePageNumberForOutcome(4, () => 0.5);
+    expect(page % 10).toBe(4);
   });
 
   it("generates page numbers strictly between 1 and 500 whose final digit matches outcome", () => {
@@ -34,7 +49,20 @@ describe("Randomness & Page Generation", () => {
     expect(outcomeZeroPages[outcomeZeroPages.length - 1]).toBe(500);
   });
 
-  it("statistically verifies uniform 20% distribution over a large sample", () => {
+  it("tests secureRandomInt boundaries and defaultPRNG output range", () => {
+    expect(secureRandomInt(1)).toBe(0);
+    for (let i = 0; i < 100; i++) {
+      const val = secureRandomInt(5);
+      expect(val).toBeGreaterThanOrEqual(0);
+      expect(val).toBeLessThan(5);
+
+      const prngVal = defaultPRNG();
+      expect(prngVal).toBeGreaterThanOrEqual(0);
+      expect(prngVal).toBeLessThan(1);
+    }
+  });
+
+  it("statistically verifies uniform 20% distribution over a large sample (50,000 rolls)", () => {
     const counts: Record<number, number> = { 0: 0, 2: 0, 4: 0, 6: 0, 8: 0 };
     const totalRolls = 50_000;
 
@@ -52,4 +80,3 @@ describe("Randomness & Page Generation", () => {
     }
   });
 });
-

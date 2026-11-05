@@ -20,22 +20,38 @@ import {
   CreatePlayerInput
 } from "@pageshooter/game-engine";
 
-interface SimulatorSession {
+export interface SimulatorSession {
   state: MatchState;
   eventsLog: MatchEvent[];
 }
 
-function createPlayers(count: number): CreatePlayerInput[] {
+const FANTASY_NAMES = [
+  "Aethelgard",
+  "Balthazar",
+  "Celestia",
+  "Drakon",
+  "Eldrin",
+  "Faelan",
+  "Gideon",
+  "Hadriel",
+  "Ignis",
+  "Jorun"
+];
+
+export function createPlayers(count: number): CreatePlayerInput[] {
   return Array.from({ length: count }, (_, i) => ({
     playerId: `player-${i + 1}`,
-    username: `Player ${i + 1}`,
+    username: FANTASY_NAMES[i] || `Mage-${i + 1}`,
     avatarId: `avatar-mage-${i + 1}`
   }));
 }
 
-function startMatch(playerCount: number = 5): SimulatorSession {
+let matchCounter = 0;
+
+export function startMatch(playerCount: number = 5): SimulatorSession {
+  matchCounter++;
   const result = createInitialMatchState(
-    `sim-match-${Date.now()}`,
+    `sim-match-${Date.now()}-${matchCounter}`,
     "SIM-ROOM",
     createPlayers(playerCount)
   );
@@ -45,7 +61,7 @@ function startMatch(playerCount: number = 5): SimulatorSession {
   };
 }
 
-function renderCellStatus(cell: CellState): string {
+export function renderCellStatus(cell: CellState): string {
   if (cell.destroyed) {
     return "  X  ";
   }
@@ -53,15 +69,14 @@ function renderCellStatus(cell: CellState): string {
     return "  —  ";
   }
   const label = CELL_PROGRESS_LABELS[cell.progress];
-  // Pad label to 5 chars
   return label.padEnd(5, " ");
 }
 
-function renderBattlefield(session: SimulatorSession): void {
+export function renderBattlefield(session: SimulatorSession): void {
   const state = session.state;
-  console.log("\n" + "=".repeat(68));
+  console.log("\n" + "=".repeat(73));
   console.log("   PAGE SHOOTER — ANCIENT MAGICAL BOOK SIMULATOR (PHASE 1)");
-  console.log("=".repeat(68));
+  console.log("=".repeat(73));
 
   const currentTurnPlayer = state.players.find((p) => p.playerId === state.turn.currentPlayerId);
   const currentPos = currentTurnPlayer ? currentTurnPlayer.position : "None";
@@ -81,15 +96,22 @@ function renderBattlefield(session: SimulatorSession): void {
     }
   }
 
-  console.log("-".repeat(68));
-  console.log("| Pos | Player   | Status     |  0   |  2   |  4   |  6   |  8   | Kills |");
-  console.log("| --- | -------- | ---------- | ---- | ---- | ---- | ---- | ---- | ----- |");
+  console.log("-".repeat(73));
+  console.log("| Pos  | Player      | Status     |  0   |  2   |  4   |  6   |  8   | Kills |");
+  console.log("| ---- | ----------- | ---------- | ---- | ---- | ---- | ---- | ---- | ----- |");
 
-  for (const p of state.players) {
+  // Always display sorted strictly by numeric position P1..Pn
+  const sortedPlayers = [...state.players].sort((a, b) => {
+    const numA = parseInt(a.position.replace("P", ""), 10);
+    const numB = parseInt(b.position.replace("P", ""), 10);
+    return numA - numB;
+  });
+
+  for (const p of sortedPlayers) {
     const isCurrent = p.playerId === state.turn.currentPlayerId && state.phase === "ACTIVE";
-    const posMarker = isCurrent ? `${p.position}*` : `${p.position} `;
+    const posMarker = (isCurrent ? `${p.position}*` : p.position).padEnd(4, " ");
     const statusStr = p.status.padEnd(10, " ");
-    const nameStr = p.username.padEnd(8, " ");
+    const nameStr = p.username.padEnd(11, " ");
     const c0 = renderCellStatus(p.cells[0]);
     const c2 = renderCellStatus(p.cells[2]);
     const c4 = renderCellStatus(p.cells[4]);
@@ -99,17 +121,20 @@ function renderBattlefield(session: SimulatorSession): void {
 
     console.log(`| ${posMarker} | ${nameStr} | ${statusStr} |${c0}|${c2}|${c4}|${c6}|${c8}|  ${killsStr}  |`);
   }
-  console.log("-".repeat(68));
+  console.log("-".repeat(73));
   console.log("Legend: — = Empty | X = Destroyed | Face/Body/Legs/Arms/Gun | * = Active Turn");
-  console.log("=".repeat(68) + "\n");
+  console.log("=".repeat(73) + "\n");
 }
 
-function resolvePlayerTarget(state: MatchState, inputStr: string): string | null {
+export function resolvePlayerTarget(state: MatchState, inputStr: string): string | null {
   const clean = inputStr.trim().toUpperCase();
   // Match by position: P1..P10 or 1..10
   const posMatch = clean.startsWith("P") ? clean : `P${clean}`;
   const target = state.players.find(
-    (p) => p.position.toUpperCase() === posMatch || p.playerId.toUpperCase() === clean
+    (p) =>
+      p.position.toUpperCase() === posMatch ||
+      p.username.toUpperCase() === clean ||
+      p.playerId.toUpperCase() === clean
   );
   return target ? target.playerId : null;
 }
@@ -121,7 +146,7 @@ AVAILABLE COMMANDS:
                             Without argument: picks random uniform outcome [0,2,4,6,8] & page 1..500.
                             With argument (e.g. 'roll 4'): testing-only deterministic override.
   shoot <target> <cell>   - Shoot an opponent's cell when mandatory shot is pending.
-                            Target can be position (P2, P3) or player id.
+                            Target can be position (P2, P3) or username (e.g. Drakon).
                             Cell must be 0, 2, 4, 6, or 8 (e.g. 'shoot P2 0').
   show                    - Re-render the complete battlefield state.
   log [count]             - Display recent match events (default: 10).
@@ -314,11 +339,13 @@ export async function runCli(): Promise<void> {
       }
 
       console.log(`[Error] Unknown command: '${command}'. Type 'help' for command list.`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof GameRuleError) {
         console.log(`\n❌ [GameRuleError: ${err.code}] ${err.message}\n`);
+      } else if (err instanceof Error) {
+        console.log(`\n❌ [Error] ${err.message}\n`);
       } else {
-        console.log(`\n❌ [Error] ${err?.message || err}\n`);
+        console.log(`\n❌ [Error] ${String(err)}\n`);
       }
     }
   }
@@ -327,7 +354,7 @@ export async function runCli(): Promise<void> {
 }
 
 // Direct execution guard
-if (process.argv[1]?.includes("manual-simulator")) {
+if (process.argv[1]?.endsWith("index.ts") || process.argv[1]?.endsWith("index.js")) {
   runCli().catch((err) => {
     console.error("Simulator error:", err);
     process.exit(1);

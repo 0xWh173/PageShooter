@@ -112,3 +112,4 @@ Use these commands sequentially in the simulator to test all rules:
 1. Eliminate all players except one.
    - *Observation:* Match phase transitions to `COMPLETED`. Winner declared (`LAST_PLAYER_STANDING`). Total turns and kills recorded.
 2. Gameplay commands like `roll` are blocked post-match until `reset`.
+

@@ -12,7 +12,7 @@ import {
   RECONNECT_WINDOW_MS,
   GameRuleError
 } from "@pageshooter/shared";
-import { PRNG, defaultPRNG } from "./random.js";
+import { PRNG, secureRandomInt } from "./random.js";
 
 export interface CreatePlayerInput {
   playerId: string;
@@ -90,6 +90,19 @@ export function createEvent(
 }
 
 /**
+ * Appends an event to the events list with monotonic sequence.
+ */
+function addEvent(
+  state: MatchState,
+  events: MatchEvent[],
+  type: MatchEventType,
+  details: Partial<MatchEvent> = {}
+): void {
+  const sequence = state.version + events.length;
+  events.push(createEvent(state, sequence, type, details));
+}
+
+/**
  * Validates command prerequisites: match active, not paused, version current, not duplicate.
  */
 function validateCommandPrerequisites(
@@ -135,7 +148,7 @@ export function createInitialMatchState(
   matchId: string,
   roomId: string,
   playerInputs: CreatePlayerInput[],
-  prng: PRNG = defaultPRNG
+  prng?: PRNG
 ): EngineResult {
   if (playerInputs.length < MIN_PLAYERS) {
     throw new GameRuleError(
@@ -150,10 +163,10 @@ export function createInitialMatchState(
     );
   }
 
-  // Shuffle players randomly to assign positions P1..Pn
+  // Shuffle players randomly to assign positions P1..Pn using cryptographic randomness (or supplied PRNG)
   const shuffled = [...playerInputs];
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(prng() * (i + 1));
+    const j = prng ? Math.floor(prng() * (i + 1)) : secureRandomInt(i + 1);
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
 
@@ -269,33 +282,28 @@ export function applyRoll(
   const nextState = cloneMatchState(currentState);
   recordCommandId(nextState, options?.commandId);
   nextState.version += 1;
-  let nextSeq = nextState.version;
   const events: MatchEvent[] = [];
 
   const currentPlayer = nextState.players.find((p) => p.playerId === senderPlayerId)!;
   const cell = currentPlayer.cells[outcome];
 
-  events.push(
-    createEvent(nextState, nextSeq++, "BOOK_ROLL_ACCEPTED", {
-      actorPlayerId: currentPlayer.playerId,
-      actorUsername: currentPlayer.username,
-      actorPosition: currentPlayer.position,
-      cellValue: outcome,
-      outcome,
-      pageNumber
-    })
-  );
+  addEvent(nextState, events, "BOOK_ROLL_ACCEPTED", {
+    actorPlayerId: currentPlayer.playerId,
+    actorUsername: currentPlayer.username,
+    actorPosition: currentPlayer.position,
+    cellValue: outcome,
+    outcome,
+    pageNumber
+  });
 
   // Case 1: Cell is already destroyed -> Turn is wasted.
   if (cell.destroyed) {
-    events.push(
-      createEvent(nextState, nextSeq++, "TURN_WASTED", {
-        actorPlayerId: currentPlayer.playerId,
-        actorUsername: currentPlayer.username,
-        actorPosition: currentPlayer.position,
-        cellValue: outcome
-      })
-    );
+    addEvent(nextState, events, "TURN_WASTED", {
+      actorPlayerId: currentPlayer.playerId,
+      actorUsername: currentPlayer.username,
+      actorPosition: currentPlayer.position,
+      cellValue: outcome
+    });
 
     advanceToNextPlayer(nextState, currentPlayer.playerId);
     return { state: nextState, events };
@@ -308,18 +316,16 @@ export function applyRoll(
       cell.hasGun = true; // 5th roll creates gun with 0 bullets and does not shoot
     }
 
-    events.push(
-      createEvent(nextState, nextSeq++, "CELL_PROGRESS_UPDATED", {
-        actorPlayerId: currentPlayer.playerId,
-        actorUsername: currentPlayer.username,
-        actorPosition: currentPlayer.position,
-        cellValue: outcome,
-        metadata: {
-          progress: cell.progress,
-          hasGun: cell.hasGun
-        }
-      })
-    );
+    addEvent(nextState, events, "CELL_PROGRESS_UPDATED", {
+      actorPlayerId: currentPlayer.playerId,
+      actorUsername: currentPlayer.username,
+      actorPosition: currentPlayer.position,
+      cellValue: outcome,
+      metadata: {
+        progress: cell.progress,
+        hasGun: cell.hasGun
+      }
+    });
 
     advanceToNextPlayer(nextState, currentPlayer.playerId);
     return { state: nextState, events };
@@ -331,14 +337,12 @@ export function applyRoll(
   nextState.turn.pendingShot = true;
   nextState.turn.rolledCell = outcome;
 
-  events.push(
-    createEvent(nextState, nextSeq++, "SHOT_REQUIRED", {
-      actorPlayerId: currentPlayer.playerId,
-      actorUsername: currentPlayer.username,
-      actorPosition: currentPlayer.position,
-      cellValue: outcome
-    })
-  );
+  addEvent(nextState, events, "SHOT_REQUIRED", {
+    actorPlayerId: currentPlayer.playerId,
+    actorUsername: currentPlayer.username,
+    actorPosition: currentPlayer.position,
+    cellValue: outcome
+  });
 
   // Check if any opponent has an undestroyed cell.
   // "If a player must shoot but no valid opponent cell remains, declare that player the winner immediately."
@@ -350,17 +354,15 @@ export function applyRoll(
     nextState.completedAt = Date.now();
     nextState.turn.pendingShot = false;
 
-    events.push(
-      createEvent(nextState, nextSeq++, "MATCH_WON", {
-        actorPlayerId: currentPlayer.playerId,
-        actorUsername: currentPlayer.username,
-        actorPosition: currentPlayer.position,
-        metadata: { reason: "NO_VALID_TARGETS" }
-      }),
-      createEvent(nextState, nextSeq++, "MATCH_COMPLETED", {
-        actorPlayerId: currentPlayer.playerId
-      })
-    );
+    addEvent(nextState, events, "MATCH_WON", {
+      actorPlayerId: currentPlayer.playerId,
+      actorUsername: currentPlayer.username,
+      actorPosition: currentPlayer.position,
+      metadata: { reason: "NO_VALID_TARGETS" }
+    });
+    addEvent(nextState, events, "MATCH_COMPLETED", {
+      actorPlayerId: currentPlayer.playerId
+    });
   }
 
   return { state: nextState, events };
@@ -397,7 +399,6 @@ export function applyShot(
   const nextState = cloneMatchState(currentState);
   recordCommandId(nextState, options?.commandId);
   nextState.version += 1;
-  let nextSeq = nextState.version;
   const events: MatchEvent[] = [];
 
   const shooter = nextState.players.find((p) => p.playerId === senderPlayerId)!;
@@ -417,38 +418,34 @@ export function applyShot(
   targetCell.destroyed = true;
   shooter.kills += 1;
 
-  events.push(
-    createEvent(nextState, nextSeq++, "SHOT_ACCEPTED", {
-      actorPlayerId: shooter.playerId,
-      actorUsername: shooter.username,
-      actorPosition: shooter.position,
-      targetPlayerId: targetPlayer.playerId,
-      targetUsername: targetPlayer.username,
-      targetPosition: targetPlayer.position,
-      cellValue: targetCellValue
-    }),
-    createEvent(nextState, nextSeq++, "CELL_DESTROYED", {
-      actorPlayerId: shooter.playerId,
-      actorUsername: shooter.username,
-      actorPosition: shooter.position,
-      targetPlayerId: targetPlayer.playerId,
-      targetUsername: targetPlayer.username,
-      targetPosition: targetPlayer.position,
-      cellValue: targetCellValue
-    })
-  );
+  addEvent(nextState, events, "SHOT_ACCEPTED", {
+    actorPlayerId: shooter.playerId,
+    actorUsername: shooter.username,
+    actorPosition: shooter.position,
+    targetPlayerId: targetPlayer.playerId,
+    targetUsername: targetPlayer.username,
+    targetPosition: targetPlayer.position,
+    cellValue: targetCellValue
+  });
+  addEvent(nextState, events, "CELL_DESTROYED", {
+    actorPlayerId: shooter.playerId,
+    actorUsername: shooter.username,
+    actorPosition: shooter.position,
+    targetPlayerId: targetPlayer.playerId,
+    targetUsername: targetPlayer.username,
+    targetPosition: targetPlayer.position,
+    cellValue: targetCellValue
+  });
 
   // Check if target player is eliminated (all 5 cells destroyed)
   const isTargetEliminated = CELL_VALUES.every((val) => targetPlayer.cells[val].destroyed);
   if (isTargetEliminated) {
     targetPlayer.status = "ELIMINATED";
-    events.push(
-      createEvent(nextState, nextSeq++, "PLAYER_ELIMINATED", {
-        targetPlayerId: targetPlayer.playerId,
-        targetUsername: targetPlayer.username,
-        targetPosition: targetPlayer.position
-      })
-    );
+    addEvent(nextState, events, "PLAYER_ELIMINATED", {
+      targetPlayerId: targetPlayer.playerId,
+      targetUsername: targetPlayer.username,
+      targetPosition: targetPlayer.position
+    });
   }
 
   // Check win condition: active players count <= 1
@@ -460,17 +457,15 @@ export function applyShot(
     nextState.winReason = "LAST_PLAYER_STANDING";
     nextState.completedAt = Date.now();
 
-    events.push(
-      createEvent(nextState, nextSeq++, "MATCH_WON", {
-        actorPlayerId: winner.playerId,
-        actorUsername: winner.username,
-        actorPosition: winner.position,
-        metadata: { reason: "LAST_PLAYER_STANDING" }
-      }),
-      createEvent(nextState, nextSeq++, "MATCH_COMPLETED", {
-        actorPlayerId: winner.playerId
-      })
-    );
+    addEvent(nextState, events, "MATCH_WON", {
+      actorPlayerId: winner.playerId,
+      actorUsername: winner.username,
+      actorPosition: winner.position,
+      metadata: { reason: "LAST_PLAYER_STANDING" }
+    });
+    addEvent(nextState, events, "MATCH_COMPLETED", {
+      actorPlayerId: winner.playerId
+    });
     return { state: nextState, events };
   }
 
@@ -490,7 +485,6 @@ export function eliminatePlayer(
 ): EngineResult {
   const nextState = cloneMatchState(currentState);
   nextState.version += 1;
-  let nextSeq = nextState.version;
   const events: MatchEvent[] = [];
 
   const targetPlayer = nextState.players.find((p) => p.playerId === playerIdToEliminate);
@@ -504,14 +498,12 @@ export function eliminatePlayer(
     targetPlayer.cells[val].destroyed = true;
   }
 
-  events.push(
-    createEvent(nextState, nextSeq++, "PLAYER_ELIMINATED", {
-      targetPlayerId: targetPlayer.playerId,
-      targetUsername: targetPlayer.username,
-      targetPosition: targetPlayer.position,
-      metadata: { reason }
-    })
-  );
+  addEvent(nextState, events, "PLAYER_ELIMINATED", {
+    targetPlayerId: targetPlayer.playerId,
+    targetUsername: targetPlayer.username,
+    targetPosition: targetPlayer.position,
+    metadata: { reason }
+  });
 
   // Check if only 1 active player remains
   const activePlayers = nextState.players.filter((p) => p.status === "ACTIVE");
@@ -523,21 +515,19 @@ export function eliminatePlayer(
       nextState.winReason = "LAST_PLAYER_STANDING";
       nextState.completedAt = Date.now();
 
-      events.push(
-        createEvent(nextState, nextSeq++, "MATCH_WON", {
-          actorPlayerId: winner.playerId,
-          actorUsername: winner.username,
-          actorPosition: winner.position,
-          metadata: { reason: "LAST_PLAYER_STANDING" }
-        }),
-        createEvent(nextState, nextSeq++, "MATCH_COMPLETED", {
-          actorPlayerId: winner.playerId
-        })
-      );
+      addEvent(nextState, events, "MATCH_WON", {
+        actorPlayerId: winner.playerId,
+        actorUsername: winner.username,
+        actorPosition: winner.position,
+        metadata: { reason: "LAST_PLAYER_STANDING" }
+      });
+      addEvent(nextState, events, "MATCH_COMPLETED", {
+        actorPlayerId: winner.playerId
+      });
     } else {
       nextState.phase = "COMPLETED";
       nextState.completedAt = Date.now();
-      events.push(createEvent(nextState, nextSeq++, "MATCH_COMPLETED"));
+      addEvent(nextState, events, "MATCH_COMPLETED");
     }
     return { state: nextState, events };
   }
@@ -572,14 +562,15 @@ export function pauseMatch(
     player.connected = false;
   }
 
-  const event = createEvent(nextState, nextState.version, "MATCH_PAUSED", {
+  const events: MatchEvent[] = [];
+  addEvent(nextState, events, "MATCH_PAUSED", {
     actorPlayerId: disconnectedPlayerId,
     actorUsername: player?.username,
     actorPosition: player?.position,
     metadata: { deadline: nextState.disconnectDeadline }
   });
 
-  return { state: nextState, events: [event] };
+  return { state: nextState, events };
 }
 
 /**
@@ -607,15 +598,13 @@ export function resumeMatch(
     player.connected = true;
   }
 
-  const events: MatchEvent[] = [
-    createEvent(nextState, nextState.version, "PLAYER_RECONNECTED", {
-      actorPlayerId: reconnectedPlayerId,
-      actorUsername: player?.username,
-      actorPosition: player?.position
-    }),
-    createEvent(nextState, nextState.version + 1, "MATCH_RESUMED")
-  ];
-  nextState.version += 1;
+  const events: MatchEvent[] = [];
+  addEvent(nextState, events, "PLAYER_RECONNECTED", {
+    actorPlayerId: reconnectedPlayerId,
+    actorUsername: player?.username,
+    actorPosition: player?.position
+  });
+  addEvent(nextState, events, "MATCH_RESUMED");
 
   return { state: nextState, events };
 }

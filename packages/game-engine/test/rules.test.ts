@@ -559,6 +559,27 @@ describe("Game Engine - Additional Edge Cases & Security Rules", () => {
     }
   });
 
+  it("handles eliminating all players down to 0 remaining", () => {
+    const { state } = createInitialMatchState("m1", "r1", createTestPlayers(5));
+    // Eliminate 4 players
+    let curr = eliminatePlayer(state, state.players[0].playerId).state;
+    curr = eliminatePlayer(curr, state.players[1].playerId).state;
+    curr = eliminatePlayer(curr, state.players[2].playerId).state;
+    curr = eliminatePlayer(curr, state.players[3].playerId).state;
+
+    // Eliminate final 5th player
+    const res = eliminatePlayer(curr, state.players[4].playerId);
+    expect(res.state.phase).toBe("COMPLETED");
+    expect(res.state.players.every((p) => p.status === "ELIMINATED")).toBe(true);
+
+    // Eliminating an already-eliminated player is safe no-op
+    const noopRes = eliminatePlayer(res.state, state.players[4].playerId);
+    expect(noopRes.state).toBeDefined();
+
+    // getNextHostPlayerId with 0 active players returns null
+    expect(getNextHostPlayerId(res.state.players)).toBeNull();
+  });
+
   it("verifies package entrypoint exports", async () => {
     const entry = await import("../src/index.js");
     expect(entry.createInitialMatchState).toBeDefined();
