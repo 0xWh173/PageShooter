@@ -6,6 +6,7 @@ import { SetupScreen } from "../src/components/SetupScreen.js";
 import { StickmanCell } from "../src/components/StickmanCell.js";
 import { BookCinematic } from "../src/components/BookCinematic.js";
 import { Battlefield } from "../src/components/Battlefield.js";
+import { VictoryModal } from "../src/components/VictoryModal.js";
 import { createInitialMatchState } from "@pageshooter/game-engine";
 import type { CellState, CellValue, MatchState } from "@pageshooter/shared";
 
@@ -227,6 +228,62 @@ describe("React Components QA & Regression Tests", () => {
       for (let i = 1; i <= 10; i++) {
         expect(screen.getByText(`P${i}`)).toBeTruthy();
       }
+    });
+  });
+
+  describe("VictoryModal Component QA", () => {
+    it("renders winner info, all 5 cells, stats, and handles action buttons", () => {
+      const inputs = [
+        { playerId: "p1", username: "Pip", avatarId: "a1" },
+        { playerId: "p2", username: "Hazel", avatarId: "a2" },
+        { playerId: "p3", username: "Barnaby", avatarId: "a3" },
+        { playerId: "p4", username: "Clover", avatarId: "a4" },
+        { playerId: "p5", username: "Oliver", avatarId: "a5" }
+      ];
+      const { state } = createInitialMatchState("v-test", "r-test", inputs);
+      state.phase = "COMPLETED";
+      state.winnerPlayerId = "p1";
+      state.winReason = "LAST_PLAYER_STANDING";
+      state.totalTurns = 24;
+      const winnerPlayer = state.players.find((p) => p.playerId === "p1")!;
+      winnerPlayer.kills = 3;
+      winnerPlayer.cells[2].destroyed = true;
+
+      const onRematch = vi.fn();
+      const onNewMatch = vi.fn();
+
+      render(
+        <VictoryModal
+          matchState={state}
+          onPlayAgain={onRematch}
+          onNewMatch={onNewMatch}
+        />
+      );
+
+      // Verify header & winner title
+      expect(screen.getByText(/Storybook Grand Champion/i)).toBeTruthy();
+      expect(screen.getByText(/Pip Wins!/i)).toBeTruthy();
+      expect(screen.getByText(/Seat P\d • Last Player Standing/i)).toBeTruthy();
+
+      // Verify section title & cells
+      expect(screen.getByText(/Surviving Warrior Cells/i)).toBeTruthy();
+
+      // Verify stats
+      expect(screen.getByText(/Total Turns/i)).toBeTruthy();
+      expect(screen.getByText("24")).toBeTruthy();
+      expect(screen.getByText(/Winner Kills/i)).toBeTruthy();
+      expect(screen.getByText("3 ⭐")).toBeTruthy();
+      expect(screen.getByText(/Surviving Cells/i)).toBeTruthy();
+      expect(screen.getByText("4 / 5")).toBeTruthy();
+
+      // Verify action buttons
+      const rematchBtn = screen.getByRole("button", { name: /Play Again \/ Rematch/i });
+      fireEvent.click(rematchBtn);
+      expect(onRematch).toHaveBeenCalledTimes(1);
+
+      const newMatchBtn = screen.getByRole("button", { name: /New Match Setup/i });
+      fireEvent.click(newMatchBtn);
+      expect(onNewMatch).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -81,19 +81,31 @@ export const App: React.FC = () => {
       }));
       return createInitialMatchState("qa-10p", "storybook-arena", inputs).state;
     }
-    if (qaView === "victory") {
+    if (qaView === "victory" || qaView === "victory_5survivors" || qaView === "victory_novalidtargets") {
       const state = createQa5pState();
       state.phase = "COMPLETED";
       state.winnerPlayerId = state.players[0].playerId;
-      state.winReason = "LAST_PLAYER_STANDING";
-      state.totalTurns = 24;
+      state.winReason = qaView === "victory_novalidtargets" ? "NO_VALID_TARGETS" : "LAST_PLAYER_STANDING";
+      state.totalTurns = 28;
       state.players[0].kills = 4;
-      state.players[0].cells[0].progress = 5;
-      state.players[0].cells[0].hasGun = true;
-      state.players[0].cells[4].progress = 3;
-      state.players[0].cells[8].progress = 4;
-      state.players[0].cells[2].destroyed = true;
-      state.players[0].cells[6].destroyed = true;
+      
+      if (qaView === "victory_5survivors") {
+        // All 5 cells surviving with diverse progression stages
+        state.players[0].cells[0].progress = 5;
+        state.players[0].cells[0].hasGun = true;
+        state.players[0].cells[2].progress = 4;
+        state.players[0].cells[4].progress = 3;
+        state.players[0].cells[6].progress = 2;
+        state.players[0].cells[8].progress = 1;
+      } else {
+        // Fewer surviving cells (3 alive, 2 destroyed)
+        state.players[0].cells[0].progress = 5;
+        state.players[0].cells[0].hasGun = true;
+        state.players[0].cells[4].progress = 3;
+        state.players[0].cells[8].progress = 4;
+        state.players[0].cells[2].destroyed = true;
+        state.players[0].cells[6].destroyed = true;
+      }
       return state;
     }
     return null;
@@ -359,7 +371,11 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-cozy-ivory text-cozy-brown-dark flex flex-col justify-between selection:bg-cozy-amber selection:text-cozy-brown-dark">
+    <div
+      className={`min-h-screen bg-cozy-ivory text-cozy-brown-dark flex flex-col justify-between selection:bg-cozy-amber selection:text-cozy-brown-dark w-full max-w-full overflow-x-hidden ${
+        matchState.phase === "COMPLETED" ? "overflow-hidden max-h-screen" : ""
+      }`}
+    >
       {/* Turn HUD Header (Fixed height flow, no overlap) */}
       <TurnHUD
         matchState={matchState}
@@ -369,7 +385,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main Matrix Battlefield Area */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-2 sm:px-4 py-3 flex flex-col">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-2 sm:px-4 py-3 flex flex-col max-w-full overflow-hidden">
         <Battlefield
           matchState={matchState}
           onSelectTarget={handleSelectTarget}

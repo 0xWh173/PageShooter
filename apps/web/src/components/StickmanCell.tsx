@@ -33,7 +33,7 @@ export const StickmanCell: React.FC<StickmanCellProps> = ({
       tabIndex={isTargetable ? 0 : undefined}
       aria-label={`Cell ${cellValue}: ${destroyed ? "Destroyed" : CELL_PROGRESS_LABELS[progress]}`}
       className={`
-        relative w-full h-full flex flex-col justify-between items-center p-2 transition-all duration-150 select-none
+        relative w-full h-full flex flex-col justify-between items-center p-1 sm:p-2 transition-all duration-150 select-none min-w-0
         ${destroyed
           ? "bg-[#F4EDE2]/50 text-cozy-brown/40 cursor-default pointer-events-none"
           : isTargetable
@@ -43,20 +43,20 @@ export const StickmanCell: React.FC<StickmanCellProps> = ({
       `}
     >
       {/* Top Bar: Cell Number & Bullet Badge */}
-      <div className="w-full flex items-center justify-between px-1 text-[11px] leading-none">
+      <div className="w-full flex items-center justify-between px-0.5 sm:px-1 text-[9px] sm:text-[11px] leading-none">
         <span className="font-mono font-bold text-cozy-brown/70">
           #{cellValue}
         </span>
 
         {hasActiveBullet && (
-          <span className="inline-flex items-center gap-1 font-fredoka font-semibold text-[10px] bg-cozy-amber text-cozy-brown-dark px-1.5 py-0.5 rounded-full shadow-xs">
+          <span className="inline-flex items-center gap-1 font-fredoka font-semibold text-[8px] sm:text-[10px] bg-cozy-amber text-cozy-brown-dark px-1.5 py-0.5 rounded-full shadow-xs">
             <span>⭐</span>
             <span>Bullet</span>
           </span>
         )}
 
         {destroyed && (
-          <span className="text-[10px] font-fredoka font-medium text-cozy-brown/50">
+          <span className="text-[8px] sm:text-[10px] font-fredoka font-medium text-cozy-brown/50">
             Poofed
           </span>
         )}
@@ -64,7 +64,7 @@ export const StickmanCell: React.FC<StickmanCellProps> = ({
 
       {/* Center: Scaled Stickman Artwork (occupies 45-55% of cell height) */}
       <div className="w-full flex-1 flex items-center justify-center my-0.5">
-        <div className="relative w-16 h-18 sm:w-20 sm:h-20 flex items-center justify-center">
+        <div className="relative w-8 h-10 sm:w-14 sm:h-16 md:w-18 md:h-20 flex items-center justify-center max-w-full">
           <svg
             viewBox="0 0 100 120"
             className="w-full h-full overflow-visible"
@@ -194,9 +194,9 @@ export const StickmanCell: React.FC<StickmanCellProps> = ({
       </div>
 
       {/* Bottom Bar: Progression Label */}
-      <div className="w-full text-center py-0.5">
+      <div className="w-full text-center py-0.5 overflow-hidden">
         <span
-          className={`text-[11px] font-fredoka font-medium tracking-tight ${
+          className={`text-[9px] sm:text-[11px] font-fredoka font-medium tracking-tight truncate block px-0.5 ${
             destroyed
               ? "text-cozy-brown/40 line-through"
               : progress === 5

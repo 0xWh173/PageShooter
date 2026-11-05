@@ -76,7 +76,17 @@ async function run() {
       { name: "7_book_cinematic.png", view: "cinematic", width: 1280, height: 820 },
       { name: "8_cell_destruction.png", view: "destruction", width: 1280, height: 820 },
       { name: "9_player_elimination.png", view: "elimination", width: 1280, height: 820 },
-      { name: "10_victory_screen.png", view: "victory", width: 1280, height: 820 }
+      { name: "10_victory_screen.png", view: "victory", width: 1280, height: 820 },
+      // Dedicated Victory Redesign Viewports (Section 5)
+      { name: "victory_1920x1080.png", view: "victory", width: 1920, height: 1080 },
+      { name: "victory_1600x900.png", view: "victory", width: 1600, height: 900 },
+      { name: "victory_1366x768.png", view: "victory", width: 1366, height: 768 },
+      { name: "victory_1024x768.png", view: "victory", width: 1024, height: 768 },
+      { name: "victory_390x844.png", view: "victory", width: 390, height: 844 },
+      { name: "victory_360x800.png", view: "victory", width: 360, height: 800 },
+      // Victory Scenario Validations (Section 8)
+      { name: "victory_5_survivors.png", view: "victory_5survivors", width: 1366, height: 768 },
+      { name: "victory_no_valid_targets.png", view: "victory_novalidtargets", width: 1366, height: 768 }
     ];
 
     try {
