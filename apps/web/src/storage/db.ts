@@ -38,9 +38,10 @@ export async function saveOfflineMatch(state: MatchState): Promise<void> {
 
 /**
  * Loads the current offline match state from IndexedDB.
+ * If onlyActive is true, returns null if the match is COMPLETED.
  * Returns null if no match is stored or if stored state is invalid.
  */
-export async function loadOfflineMatch(): Promise<MatchState | null> {
+export async function loadOfflineMatch(onlyActive: boolean = false): Promise<MatchState | null> {
   try {
     const db = await getDb();
     const data = await db.get(STORE_NAME, MATCH_KEY);
@@ -49,6 +50,9 @@ export async function loadOfflineMatch(): Promise<MatchState | null> {
     }
     if (!data.matchId || !Array.isArray(data.players)) {
       console.warn("Invalid match data found:", data);
+      return null;
+    }
+    if (onlyActive && data.phase !== "ACTIVE") {
       return null;
     }
     return data as MatchState;

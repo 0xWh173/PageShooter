@@ -98,3 +98,4 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     </div>
   );
 };
+

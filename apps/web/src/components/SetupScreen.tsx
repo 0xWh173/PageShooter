@@ -92,8 +92,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
           </p>
         </div>
 
-        {/* Saved Match Notice (If Exists in IndexedDB) */}
-        {savedMatch && (
+        {/* Saved Match Notice (If Active Match Exists in IndexedDB) */}
+        {savedMatch && savedMatch.phase === "ACTIVE" && (
           <div className="mb-8 p-4 rounded-2xl bg-fantasy-gold/10 border-2 border-fantasy-gold/50 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in">
             <div className="text-left">
               <div className="flex items-center gap-2">

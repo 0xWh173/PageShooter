@@ -73,4 +73,24 @@ describe("IndexedDB Storage Layer", () => {
     await clearOfflineMatch();
     expect(await loadOfflineMatch()).toBeNull();
   });
+
+  it("filters out completed matches when onlyActive is requested", async () => {
+    const { state: initial } = createInitialMatchState(
+      "offline-test-completed",
+      "room-offline",
+      SAMPLE_PLAYERS
+    );
+
+    initial.phase = "COMPLETED";
+    await saveOfflineMatch(initial);
+
+    // loadOfflineMatch(true) should filter it out
+    const activeMatch = await loadOfflineMatch(true);
+    expect(activeMatch).toBeNull();
+
+    // loadOfflineMatch(false) still retrieves raw match record
+    const rawMatch = await loadOfflineMatch(false);
+    expect(rawMatch).not.toBeNull();
+    expect(rawMatch?.phase).toBe("COMPLETED");
+  });
 });

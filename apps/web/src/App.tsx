@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import type { MatchState, PlayerState, CellValue } from "@pageshooter/shared";
 import {
   createInitialMatchState,
@@ -28,15 +28,21 @@ export const App: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [cinematicData, setCinematicData] = useState<CinematicState | null>(null);
   const [eliminatedNoticePlayer, setEliminatedNoticePlayer] = useState<PlayerState | null>(null);
+  const isActionLockedRef = useRef<boolean>(false);
 
-  // Check IndexedDB for existing match on initial load
+  // Check IndexedDB for existing active match on initial load
   useEffect(() => {
     let isMounted = true;
-    loadOfflineMatch()
+    loadOfflineMatch(true)
       .then((loaded) => {
         if (!isMounted) return;
-        if (loaded) {
+        if (loaded && loaded.phase === "ACTIVE") {
+          // Exact recovery: immediately resume active game state on refresh
+          setMatchState(loaded);
           setSavedMatch(loaded);
+        } else {
+          // Completed or invalid matches are not resumable
+          clearOfflineMatch().catch(() => {});
         }
       })
       .catch((err) => {
@@ -53,6 +59,7 @@ export const App: React.FC = () => {
 
   // Start new match
   const handleStartMatch = async (playerNames: string[]) => {
+    isActionLockedRef.current = false;
     const matchId = `offline-match-${Date.now()}`;
     const playerInputs = playerNames.map((name, idx) => ({
       playerId: `p_${idx + 1}_${Date.now()}`,
@@ -69,7 +76,7 @@ export const App: React.FC = () => {
 
   // Resume saved match from IndexedDB
   const handleResumeSavedMatch = () => {
-    if (savedMatch) {
+    if (savedMatch && savedMatch.phase === "ACTIVE") {
       setMatchState(savedMatch);
       soundManager.playTurnChime();
     }
@@ -83,6 +90,7 @@ export const App: React.FC = () => {
 
   // Abandon / Reset current match
   const handleResetMatch = async () => {
+    isActionLockedRef.current = false;
     await clearOfflineMatch();
     setMatchState(null);
     setSavedMatch(null);
@@ -99,12 +107,16 @@ export const App: React.FC = () => {
 
   // Roll book
   const handleRoll = async () => {
+    if (isActionLockedRef.current) return;
     if (!matchState || matchState.turn.phase !== "AWAITING_ROLL") return;
     const currentPlayerId = matchState.turn.currentPlayerId;
     if (!currentPlayerId) return;
 
     const currentPlayer = matchState.players.find((p) => p.playerId === currentPlayerId);
     if (!currentPlayer) return;
+
+    // Lock to prevent rapid double-clicks
+    isActionLockedRef.current = true;
 
     // 1. Generate cryptographic outcome & page number
     const { outcome, pageNumber } = generateBookRoll();
@@ -147,41 +159,50 @@ export const App: React.FC = () => {
       setMatchState(cinematicData.nextMatchState);
       setCinematicData(null);
     }
+    isActionLockedRef.current = false;
   }, [cinematicData]);
 
   // Select target opponent cell
   const handleSelectTarget = async (targetPlayerId: string, cellValue: CellValue) => {
+    if (isActionLockedRef.current) return;
     if (!matchState || !matchState.turn.pendingShot) return;
     const shooterId = matchState.turn.currentPlayerId;
     if (!shooterId) return;
 
-    // Audio effects
-    soundManager.playGunshot();
-    setTimeout(() => {
-      soundManager.playCellDestroyed();
-    }, 180);
+    // Lock to prevent rapid double-clicks
+    isActionLockedRef.current = true;
 
-    // Apply shot in pure rules engine
-    const { state: nextState, events } = applyShot(
-      matchState,
-      shooterId,
-      targetPlayerId,
-      cellValue
-    );
+    try {
+      // Audio effects
+      soundManager.playGunshot();
+      setTimeout(() => {
+        soundManager.playCellDestroyed();
+      }, 180);
 
-    // Persist immediately to IndexedDB
-    await saveOfflineMatch(nextState);
-    setMatchState(nextState);
-
-    // Check if any player was eliminated by this shot
-    const eliminationEvent = events.find((e) => e.type === "PLAYER_ELIMINATED");
-    if (eliminationEvent && eliminationEvent.actorPlayerId) {
-      const eliminated = nextState.players.find(
-        (p) => p.playerId === eliminationEvent.actorPlayerId
+      // Apply shot in pure rules engine
+      const { state: nextState, events } = applyShot(
+        matchState,
+        shooterId,
+        targetPlayerId,
+        cellValue
       );
-      if (eliminated) {
-        setEliminatedNoticePlayer(eliminated);
+
+      // Persist immediately to IndexedDB
+      await saveOfflineMatch(nextState);
+      setMatchState(nextState);
+
+      // Check if any player was eliminated by this shot
+      const eliminationEvent = events.find((e) => e.type === "PLAYER_ELIMINATED");
+      if (eliminationEvent && eliminationEvent.actorPlayerId) {
+        const eliminated = nextState.players.find(
+          (p) => p.playerId === eliminationEvent.actorPlayerId
+        );
+        if (eliminated) {
+          setEliminatedNoticePlayer(eliminated);
+        }
       }
+    } finally {
+      isActionLockedRef.current = false;
     }
   };
 

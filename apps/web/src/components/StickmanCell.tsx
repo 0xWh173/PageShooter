@@ -33,16 +33,15 @@ export const StickmanCell: React.FC<StickmanCellProps> = ({
       tabIndex={isTargetable ? 0 : undefined}
       aria-label={`Cell ${cellValue}: ${destroyed ? "Destroyed" : CELL_PROGRESS_LABELS[progress]}`}
       className={`
-        relative flex flex-col items-center justify-between p-2 rounded-lg border transition-all duration-200 select-none
+        relative flex flex-col items-center justify-between p-1.5 sm:p-2 rounded-lg border transition-all duration-200 select-none min-w-0 w-full min-h-[94px] sm:min-h-[104px]
         ${destroyed
           ? "bg-black/60 border-fantasy-border/40 opacity-40 grayscale"
           : isTargetable
-          ? "bg-fantasy-crimson/15 border-fantasy-crimson hover:bg-fantasy-crimson/30 hover:scale-105 cursor-pointer shadow-[0_0_12px_rgba(232,58,58,0.4)] animate-pulse"
+          ? "bg-fantasy-crimson/15 border-fantasy-crimson hover:bg-fantasy-crimson/30 hover:scale-105 active:scale-95 cursor-pointer touch-manipulation shadow-[0_0_12px_rgba(232,58,58,0.4)] animate-pulse"
           : "bg-fantasy-card/80 border-fantasy-border/70 hover:border-fantasy-gold/50 shadow-sm"
         }
         ${hasActiveBullet ? "ring-2 ring-fantasy-gold shadow-[0_0_15px_rgba(229,169,60,0.6)]" : ""}
       `}
-      style={{ minWidth: "64px", minHeight: "100px" }}
     >
       {/* Cell Value Header */}
       <div className="flex items-center justify-between w-full px-1">
@@ -189,3 +188,4 @@ export const StickmanCell: React.FC<StickmanCellProps> = ({
     </div>
   );
 };
+

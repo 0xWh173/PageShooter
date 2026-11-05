@@ -63,6 +63,9 @@ class SoundManager {
 
   public setVolume(volume: number): void {
     this.settings.volume = Math.max(0, Math.min(1, volume));
+    if (this.settings.volume > 0 && this.settings.muted) {
+      this.settings.muted = false;
+    }
     this.saveSettings();
   }
 
@@ -286,3 +289,4 @@ class SoundManager {
 }
 
 export const soundManager = new SoundManager();
+

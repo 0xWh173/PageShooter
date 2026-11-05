@@ -61,3 +61,4 @@ export const EliminationModal: React.FC<EliminationModalProps> = ({
     </div>
   );
 };
+

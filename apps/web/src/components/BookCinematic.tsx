@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import type { CellValue } from "@pageshooter/shared";
 import { soundManager } from "../audio/soundManager.js";
 
@@ -17,6 +17,13 @@ export const BookCinematic: React.FC<BookCinematicProps> = ({
 }) => {
   const [phase, setPhase] = useState<"OPENING" | "FLIPPING" | "REVEAL" | "CONSEQUENCE">("OPENING");
   const [displayPage, setDisplayPage] = useState<number>(1);
+  const completedRef = useRef(false);
+
+  const finishCinematic = useCallback(() => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    onComplete();
+  }, [onComplete]);
 
   useEffect(() => {
     soundManager.playRuneHum();
@@ -48,7 +55,7 @@ export const BookCinematic: React.FC<BookCinematicProps> = ({
 
     // 5.2s: Complete animation
     const t4 = setTimeout(() => {
-      onComplete();
+      finishCinematic();
     }, 5200);
 
     return () => {
@@ -58,10 +65,10 @@ export const BookCinematic: React.FC<BookCinematicProps> = ({
       clearTimeout(t4);
       clearInterval(pageInterval);
     };
-  }, [pageNumber, onComplete]);
+  }, [pageNumber, finishCinematic]);
 
   const handleSkip = () => {
-    onComplete();
+    finishCinematic();
   };
 
   const tensAndHundreds = Math.floor(pageNumber / 10);

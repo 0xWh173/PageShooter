@@ -33,7 +33,7 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const vol = parseFloat(e.target.value);
     soundManager.setVolume(vol);
-    setSoundSettings((prev) => ({ ...prev, volume: vol }));
+    setSoundSettings(soundManager.getSettings());
   };
 
   return (
@@ -85,7 +85,7 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
               <button
                 onClick={onRoll}
                 disabled={isRolling}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-fantasy-gold via-fantasy-gold-light to-fantasy-gold hover:from-fantasy-gold-light hover:to-fantasy-gold text-black font-serif font-black text-sm rounded-xl transition-all shadow-[0_0_15px_rgba(229,169,60,0.5)] active:scale-95 disabled:opacity-50 cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-fantasy-gold via-fantasy-gold-light to-fantasy-gold hover:from-fantasy-gold-light hover:to-fantasy-gold text-black font-serif font-black text-sm rounded-xl transition-all shadow-[0_0_15px_rgba(229,169,60,0.5)] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none cursor-pointer"
               >
                 <span>📖</span>
                 <span>Open Ancient Book</span>
@@ -165,3 +165,4 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
     </>
   );
 };
+

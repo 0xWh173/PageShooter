@@ -113,5 +113,46 @@ describe("Offline Game & Local Persistence Integration", () => {
     expect(reloaded?.phase).toBe("COMPLETED");
     expect(reloaded?.winnerPlayerId).toBe(winnerId);
     expect(reloaded?.winReason).toBe("LAST_PLAYER_STANDING");
+
+    // Requirement 4: Completed matches are NOT offered as active resumable matches
+    const activeOnly = await loadOfflineMatch(true);
+    expect(activeOnly).toBeNull();
+  });
+
+  it("exact match recovery on refresh during normal turn", async () => {
+    const { state } = createInitialMatchState("offline-int-turn", "offline-room", FIVE_PLAYERS);
+    await saveOfflineMatch(state);
+
+    const reloaded = await loadOfflineMatch(true);
+    expect(reloaded).not.toBeNull();
+    expect(reloaded?.matchId).toBe("offline-int-turn");
+    expect(reloaded?.turn.phase).toBe("AWAITING_ROLL");
+    expect(reloaded?.turn.pendingShot).toBe(false);
+    expect(reloaded?.turn.currentPlayerId).toBe(state.turn.currentPlayerId);
+  });
+
+  it("exact match recovery on refresh during mandatory shot", async () => {
+    let { state } = createInitialMatchState("offline-int-shot", "offline-room", FIVE_PLAYERS);
+    const shooterId = state.turn.currentPlayerId!;
+    const shooter = state.players.find((p) => p.playerId === shooterId)!;
+    shooter.cells[2].progress = 5;
+    shooter.cells[2].hasGun = true;
+
+    // Roll 6th matching roll -> grants bullet and enters AWAITING_SHOT
+    state = applyRoll(state, shooterId, 2, 22).state;
+    expect(state.turn.phase).toBe("AWAITING_SHOT");
+    expect(state.turn.pendingShot).toBe(true);
+    expect(state.turn.rolledCell).toBe(2);
+
+    // Save state (as happens before book animation begins)
+    await saveOfflineMatch(state);
+
+    // Simulate browser refresh during animation or while awaiting shot
+    const restored = await loadOfflineMatch(true);
+    expect(restored).not.toBeNull();
+    expect(restored?.turn.phase).toBe("AWAITING_SHOT");
+    expect(restored?.turn.pendingShot).toBe(true);
+    expect(restored?.turn.rolledCell).toBe(2);
+    expect(restored?.turn.currentPlayerId).toBe(shooterId);
   });
 });
