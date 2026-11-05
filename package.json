@@ -9,12 +9,15 @@
     "apps/*"
   ],
   "scripts": {
+    "build": "tsc -b",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "typecheck": "tsc -b",
     "lint": "tsc -b --noEmit"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^5.1.0",
     "typescript": "^5.7.2",
     "vitest": "^5.1.0"
   }

@@ -81,6 +81,8 @@ export interface MatchState {
   completedAt: number | null;
   totalTurns: number;
   version: number;
+  disconnectDeadline?: number | null;
+  processedCommandIds?: string[];
 }
 
 export interface RoomState {

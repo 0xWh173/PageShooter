@@ -10,6 +10,8 @@ import {
   applyShot,
   eliminatePlayer,
   getNextHostPlayerId,
+  pauseMatch,
+  resumeMatch,
   CreatePlayerInput
 } from "../src/index.js";
 
@@ -427,5 +429,141 @@ describe("Game Engine - Additional Edge Cases & Security Rules", () => {
     // If P2 is also eliminated, lowest active is P3
     state.players[1].status = "ELIMINATED";
     expect(getNextHostPlayerId(state.players)).toBe(state.players[2].playerId);
+  });
+
+  it("verifies independent progression of all 5 cells for a player", () => {
+    const { state } = createInitialMatchState("m1", "r1", createTestPlayers(5));
+    const p1 = state.players[0].playerId;
+
+    // Roll cell 0 -> progress 1
+    let s = applyRoll(state, p1, 0, 10).state;
+    expect(s.players[0].cells[0].progress).toBe(1);
+    expect(s.players[0].cells[2].progress).toBe(0);
+    expect(s.players[0].cells[4].progress).toBe(0);
+    expect(s.players[0].cells[6].progress).toBe(0);
+    expect(s.players[0].cells[8].progress).toBe(0);
+
+    // Cycle back to P1 and roll cell 6 -> progress 1 on cell 6, cell 0 stays 1
+    for (let i = 1; i < 5; i++) {
+      s = applyRoll(s, s.turn.currentPlayerId!, 0, 10).state;
+    }
+    s = applyRoll(s, p1, 6, 16).state;
+    expect(s.players[0].cells[0].progress).toBe(1);
+    expect(s.players[0].cells[6].progress).toBe(1);
+    expect(s.players[0].cells[2].progress).toBe(0);
+  });
+
+  it("rejects commands with STALE_STATE when expectedStateVersion does not match", () => {
+    const { state } = createInitialMatchState("m1", "r1", createTestPlayers(5));
+    const p1 = state.players[0].playerId;
+
+    expect(() =>
+      applyRoll(state, p1, 0, 10, { expectedStateVersion: 999 })
+    ).toThrowError(GameRuleError);
+
+    try {
+      applyRoll(state, p1, 0, 10, { expectedStateVersion: 999 });
+    } catch (err: any) {
+      expect(err.code).toBe("STALE_STATE");
+    }
+  });
+
+  it("rejects duplicate commands with DUPLICATE_COMMAND", () => {
+    const { state } = createInitialMatchState("m1", "r1", createTestPlayers(5));
+    const p1 = state.players[0].playerId;
+
+    const res = applyRoll(state, p1, 0, 10, { commandId: "cmd-123" });
+    expect(res.state.processedCommandIds).toContain("cmd-123");
+
+    // Attempting same commandId
+    expect(() =>
+      applyRoll(res.state, res.state.turn.currentPlayerId!, 0, 10, { commandId: "cmd-123" })
+    ).toThrowError(GameRuleError);
+
+    try {
+      applyRoll(res.state, res.state.turn.currentPlayerId!, 0, 10, { commandId: "cmd-123" });
+    } catch (err: any) {
+      expect(err.code).toBe("DUPLICATE_COMMAND");
+    }
+  });
+
+  it("handles match pause, gameplay rejection during pause, and successful resume", () => {
+    const { state } = createInitialMatchState("m1", "r1", createTestPlayers(5));
+    const p2 = state.players[1].playerId;
+
+    const pauseRes = pauseMatch(state, p2, 60_000);
+    expect(pauseRes.state.phase).toBe("PAUSED");
+    expect(pauseRes.events.some((e) => e.type === "MATCH_PAUSED")).toBe(true);
+
+    // Gameplay commands must be rejected with MATCH_PAUSED while paused
+    expect(() =>
+      applyRoll(pauseRes.state, pauseRes.state.turn.currentPlayerId!, 0, 10)
+    ).toThrowError(GameRuleError);
+
+    try {
+      applyRoll(pauseRes.state, pauseRes.state.turn.currentPlayerId!, 0, 10);
+    } catch (err: any) {
+      expect(err.code).toBe("MATCH_PAUSED");
+    }
+
+    // Resume match
+    const resumeRes = resumeMatch(pauseRes.state, p2);
+    expect(resumeRes.state.phase).toBe("ACTIVE");
+    expect(resumeRes.events.some((e) => e.type === "PLAYER_RECONNECTED")).toBe(true);
+    expect(resumeRes.events.some((e) => e.type === "MATCH_RESUMED")).toBe(true);
+  });
+
+  it("rejects reconnect if deadline has expired with RECONNECT_EXPIRED", () => {
+    const { state } = createInitialMatchState("m1", "r1", createTestPlayers(5));
+    const p2 = state.players[1].playerId;
+
+    // Timeout of -1000ms ensures deadline is already in the past
+    const pauseRes = pauseMatch(state, p2, -1000);
+
+    expect(() => resumeMatch(pauseRes.state, p2)).toThrowError(GameRuleError);
+    try {
+      resumeMatch(pauseRes.state, p2);
+    } catch (err: any) {
+      expect(err.code).toBe("RECONNECT_EXPIRED");
+    }
+  });
+
+  it("advances turn if the eliminated player was the current turn owner", () => {
+    const { state } = createInitialMatchState("m1", "r1", createTestPlayers(5));
+    const p1 = state.players[0].playerId;
+    expect(state.turn.currentPlayerId).toBe(p1);
+
+    const res = eliminatePlayer(state, p1, "VOLUNTARY_LEAVE");
+    expect(res.state.turn.currentPlayerId).toBe(state.players[1].playerId);
+  });
+
+  it("rejects pausing a completed match with MATCH_NOT_ACTIVE", () => {
+    const { state } = createInitialMatchState("m1", "r1", createTestPlayers(5));
+    state.phase = "COMPLETED";
+
+    expect(() => pauseMatch(state, state.players[0].playerId)).toThrowError(GameRuleError);
+    try {
+      pauseMatch(state, state.players[0].playerId);
+    } catch (err: any) {
+      expect(err.code).toBe("MATCH_NOT_ACTIVE");
+    }
+  });
+
+  it("rejects resuming when match is not paused with INVALID_COMMAND", () => {
+    const { state } = createInitialMatchState("m1", "r1", createTestPlayers(5));
+    expect(() => resumeMatch(state, state.players[0].playerId)).toThrowError(GameRuleError);
+    try {
+      resumeMatch(state, state.players[0].playerId);
+    } catch (err: any) {
+      expect(err.code).toBe("INVALID_COMMAND");
+    }
+  });
+
+  it("verifies package entrypoint exports", async () => {
+    const entry = await import("../src/index.js");
+    expect(entry.createInitialMatchState).toBeDefined();
+    expect(entry.applyRoll).toBeDefined();
+    expect(entry.applyShot).toBeDefined();
+    expect(entry.generateBookRoll).toBeDefined();
   });
 });

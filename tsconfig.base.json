@@ -11,6 +11,10 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "composite": true
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@pageshooter/shared": ["./packages/shared/src/index.ts"]
+    }
   }
 }

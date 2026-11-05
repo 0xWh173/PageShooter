@@ -9,8 +9,8 @@ import {
   MatchEventType,
   MIN_PLAYERS,
   MAX_PLAYERS,
-  GameRuleError,
-  WinReason
+  RECONNECT_WINDOW_MS,
+  GameRuleError
 } from "@pageshooter/shared";
 import { PRNG, defaultPRNG } from "./random.js";
 
@@ -18,6 +18,11 @@ export interface CreatePlayerInput {
   playerId: string;
   username: string;
   avatarId: string;
+}
+
+export interface CommandOptions {
+  commandId?: string;
+  expectedStateVersion?: number;
 }
 
 export interface EngineResult {
@@ -60,7 +65,8 @@ export function cloneMatchState(state: MatchState): MatchState {
     spectators: [...state.spectators],
     turn: {
       ...state.turn
-    }
+    },
+    processedCommandIds: state.processedCommandIds ? [...state.processedCommandIds] : []
   };
 }
 
@@ -81,6 +87,45 @@ export function createEvent(
     serverTimestamp: Date.now(),
     ...details
   };
+}
+
+/**
+ * Validates command prerequisites: match active, not paused, version current, not duplicate.
+ */
+function validateCommandPrerequisites(
+  state: MatchState,
+  options?: CommandOptions
+): void {
+  if (state.phase === "PAUSED") {
+    throw new GameRuleError("MATCH_PAUSED", "Cannot perform gameplay action while match is paused.");
+  }
+
+  if (state.phase !== "ACTIVE") {
+    throw new GameRuleError("MATCH_NOT_ACTIVE", `Cannot perform action when match is in phase ${state.phase}.`);
+  }
+
+  if (options?.expectedStateVersion !== undefined && state.version !== options.expectedStateVersion) {
+    throw new GameRuleError(
+      "STALE_STATE",
+      `Command expected state version ${options.expectedStateVersion}, but current version is ${state.version}.`
+    );
+  }
+
+  if (options?.commandId && state.processedCommandIds?.includes(options.commandId)) {
+    throw new GameRuleError("DUPLICATE_COMMAND", `Command ${options.commandId} has already been processed.`);
+  }
+}
+
+/**
+ * Records a commandId in the processedCommandIds history if provided.
+ */
+function recordCommandId(state: MatchState, commandId?: string): void {
+  if (commandId) {
+    if (!state.processedCommandIds) {
+      state.processedCommandIds = [];
+    }
+    state.processedCommandIds.push(commandId);
+  }
 }
 
 /**
@@ -140,7 +185,8 @@ export function createInitialMatchState(
     startedAt: Date.now(),
     completedAt: null,
     totalTurns: 1,
-    version: 1
+    version: 1,
+    processedCommandIds: []
   };
 
   const initialEvent = createEvent(state, 1, "MATCH_STARTED", {
@@ -200,14 +246,10 @@ export function applyRoll(
   currentState: MatchState,
   senderPlayerId: string,
   outcome: CellValue,
-  pageNumber: number
+  pageNumber: number,
+  options?: CommandOptions
 ): EngineResult {
-  if (currentState.phase !== "ACTIVE") {
-    throw new GameRuleError(
-      "MATCH_NOT_ACTIVE",
-      `Cannot roll when match is in phase ${currentState.phase}.`
-    );
-  }
+  validateCommandPrerequisites(currentState, options);
 
   if (currentState.turn.phase !== "AWAITING_ROLL") {
     throw new GameRuleError(
@@ -225,6 +267,7 @@ export function applyRoll(
   }
 
   const nextState = cloneMatchState(currentState);
+  recordCommandId(nextState, options?.commandId);
   nextState.version += 1;
   let nextSeq = nextState.version;
   const events: MatchEvent[] = [];
@@ -330,14 +373,10 @@ export function applyShot(
   currentState: MatchState,
   senderPlayerId: string,
   targetPlayerId: string,
-  targetCellValue: CellValue
+  targetCellValue: CellValue,
+  options?: CommandOptions
 ): EngineResult {
-  if (currentState.phase !== "ACTIVE") {
-    throw new GameRuleError(
-      "MATCH_NOT_ACTIVE",
-      `Cannot shoot when match is in phase ${currentState.phase}.`
-    );
-  }
+  validateCommandPrerequisites(currentState, options);
 
   if (currentState.turn.phase !== "AWAITING_SHOT" || !currentState.turn.pendingShot) {
     throw new GameRuleError("SHOT_NOT_AVAILABLE", "No shot entitlement pending.");
@@ -356,6 +395,7 @@ export function applyShot(
   }
 
   const nextState = cloneMatchState(currentState);
+  recordCommandId(nextState, options?.commandId);
   nextState.version += 1;
   let nextSeq = nextState.version;
   const events: MatchEvent[] = [];
@@ -506,6 +546,76 @@ export function eliminatePlayer(
   if (nextState.turn.currentPlayerId === playerIdToEliminate) {
     advanceToNextPlayer(nextState, playerIdToEliminate);
   }
+
+  return { state: nextState, events };
+}
+
+/**
+ * Pauses an active match when an active player disconnects, setting a 60-second deadline.
+ */
+export function pauseMatch(
+  currentState: MatchState,
+  disconnectedPlayerId: string,
+  timeoutMs: number = RECONNECT_WINDOW_MS
+): EngineResult {
+  if (currentState.phase === "COMPLETED" || currentState.phase === "DELETED") {
+    throw new GameRuleError("MATCH_NOT_ACTIVE", "Cannot pause an inactive match.");
+  }
+
+  const nextState = cloneMatchState(currentState);
+  nextState.phase = "PAUSED";
+  nextState.disconnectDeadline = Date.now() + timeoutMs;
+  nextState.version += 1;
+
+  const player = nextState.players.find((p) => p.playerId === disconnectedPlayerId);
+  if (player) {
+    player.connected = false;
+  }
+
+  const event = createEvent(nextState, nextState.version, "MATCH_PAUSED", {
+    actorPlayerId: disconnectedPlayerId,
+    actorUsername: player?.username,
+    actorPosition: player?.position,
+    metadata: { deadline: nextState.disconnectDeadline }
+  });
+
+  return { state: nextState, events: [event] };
+}
+
+/**
+ * Resumes a paused match when the disconnected player successfully reconnects within the deadline.
+ */
+export function resumeMatch(
+  currentState: MatchState,
+  reconnectedPlayerId: string
+): EngineResult {
+  if (currentState.phase !== "PAUSED") {
+    throw new GameRuleError("INVALID_COMMAND", "Match is not paused.");
+  }
+
+  if (currentState.disconnectDeadline && Date.now() > currentState.disconnectDeadline) {
+    throw new GameRuleError("RECONNECT_EXPIRED", "Reconnection deadline has expired.");
+  }
+
+  const nextState = cloneMatchState(currentState);
+  nextState.phase = "ACTIVE";
+  nextState.disconnectDeadline = null;
+  nextState.version += 1;
+
+  const player = nextState.players.find((p) => p.playerId === reconnectedPlayerId);
+  if (player) {
+    player.connected = true;
+  }
+
+  const events: MatchEvent[] = [
+    createEvent(nextState, nextState.version, "PLAYER_RECONNECTED", {
+      actorPlayerId: reconnectedPlayerId,
+      actorUsername: player?.username,
+      actorPosition: player?.position
+    }),
+    createEvent(nextState, nextState.version + 1, "MATCH_RESUMED")
+  ];
+  nextState.version += 1;
 
   return { state: nextState, events };
 }
