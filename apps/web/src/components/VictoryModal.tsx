@@ -26,76 +26,85 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   if (!winner) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-lg p-4 overflow-y-auto">
-      <div className="max-w-xl w-full bg-fantasy-card border-2 border-fantasy-gold rounded-3xl p-6 sm:p-8 text-center shadow-[0_0_60px_rgba(229,169,60,0.5)] my-auto animate-in zoom-in-95 duration-400">
-        {/* Crown Emblem */}
-        <div className="w-20 h-20 mx-auto mb-3 text-5xl flex items-center justify-center rounded-full bg-fantasy-gold/20 border-2 border-fantasy-gold/60 shadow-inner">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#462B18]/70 backdrop-blur-sm p-4 overflow-y-auto select-none">
+      <div className="max-w-xl w-full bg-[#FFFDF9] border-4 border-cozy-gold rounded-3xl p-6 sm:p-8 text-center shadow-[0_20px_60px_rgba(242,184,75,0.35)] my-auto animate-in zoom-in-95 duration-300 relative overflow-hidden">
+        {/* Decorative corner leaves and sparkles */}
+        <div className="absolute top-3 left-4 text-2xl animate-float">🌿</div>
+        <div className="absolute top-3 right-4 text-2xl animate-float" style={{ animationDelay: "1s" }}>🌸</div>
+        <div className="absolute bottom-3 left-4 text-2xl">✨</div>
+        <div className="absolute bottom-3 right-4 text-2xl">🍃</div>
+
+        {/* Illustrated Crown */}
+        <div className="w-20 h-20 mx-auto mb-2 text-5xl flex items-center justify-center rounded-full bg-cozy-gold-light border-3 border-cozy-gold shadow-sm animate-bounce">
           👑
         </div>
 
-        <span className="text-xs font-mono font-bold tracking-widest uppercase text-fantasy-gold">
-          Victory of the Ancient Tome
-        </span>
-
-        <h1 className="font-serif text-3xl sm:text-4xl font-black text-fantasy-gold-light mt-1 mb-2">
-          {winner.username} Prevails!
-        </h1>
-
-        <div className="inline-block px-3 py-1 bg-black/60 rounded-full border border-fantasy-gold/50 text-xs font-mono text-fantasy-parchment mb-6">
-          Seat {winner.position} • {matchState.winReason === "NO_VALID_TARGETS" ? "No Valid Opponents Remained" : "Sole Survivor"}
+        <div className="inline-block px-3 py-1 bg-cozy-gold-light border-2 border-cozy-gold rounded-full text-xs font-fredoka font-bold text-cozy-brown mb-2 shadow-xs">
+          STORYBOOK GRAND CHAMPION!
         </div>
 
-        {/* Surviving Cells Showcase */}
-        <div className="bg-black/40 border border-fantasy-border/60 rounded-2xl p-4 mb-6">
-          <div className="text-xs font-serif uppercase tracking-wider text-fantasy-parchment/70 mb-3">
-            Surviving Warrior Cells
+        <h1 className="font-fredoka text-3xl sm:text-4xl font-black text-cozy-brown mt-1 mb-1">
+          {winner.username} Wins!
+        </h1>
+
+        <div className="inline-block px-3 py-1 bg-[#FAF5EB] rounded-full border border-[#D8C7B0] text-xs font-hand text-cozy-brown-light mb-5">
+          Seat {winner.position} • {matchState.winReason === "NO_VALID_TARGETS" ? "Sole Armed Storyteller" : "Last Stickman Standing"}
+        </div>
+
+        {/* Surviving Cells Shelf */}
+        <div className="bg-[#FAF5EB] border-2 border-[#D8C7B0] rounded-2xl p-4 mb-5 shadow-inner">
+          <div className="text-xs font-fredoka font-bold uppercase tracking-wider text-cozy-brown-light mb-3 flex items-center justify-center gap-1.5">
+            <span>📚</span>
+            <span>Surviving Folio Warriors</span>
           </div>
           <div className="grid grid-cols-5 gap-2 max-w-sm mx-auto">
             {CELL_VALUES.map((val: CellValue) => (
-              <StickmanCell
-                key={val}
-                cell={winner.cells[val]}
-                cellValue={val}
-              />
+              <div key={val} className="h-28">
+                <StickmanCell
+                  cell={winner.cells[val]}
+                  cellValue={val}
+                />
+              </div>
             ))}
           </div>
         </div>
 
         {/* Match Statistics */}
-        <div className="grid grid-cols-3 gap-3 bg-fantasy-bg/60 border border-fantasy-border/50 rounded-xl p-3 mb-6 font-mono text-center">
+        <div className="grid grid-cols-3 gap-3 bg-[#FAF5EB] border-2 border-[#E2D3BE] rounded-2xl p-3 mb-6 text-center font-fredoka">
           <div>
-            <div className="text-[10px] text-fantasy-parchment/60 uppercase">Total Turns</div>
-            <div className="text-lg font-bold text-fantasy-parchment">{matchState.totalTurns}</div>
+            <div className="text-[10px] text-cozy-brown-light uppercase font-bold">Total Pages</div>
+            <div className="text-lg font-bold text-cozy-brown">{matchState.totalTurns}</div>
           </div>
           <div>
-            <div className="text-[10px] text-fantasy-parchment/60 uppercase">Winner Kills</div>
-            <div className="text-lg font-bold text-fantasy-gold">{winner.kills} ☠️</div>
+            <div className="text-[10px] text-cozy-brown-light uppercase font-bold">Champion Kills</div>
+            <div className="text-lg font-bold text-cozy-gold-dark">{winner.kills} ⭐</div>
           </div>
           <div>
-            <div className="text-[10px] text-fantasy-parchment/60 uppercase">Surviving Cells</div>
-            <div className="text-lg font-bold text-fantasy-parchment">
+            <div className="text-[10px] text-cozy-brown-light uppercase font-bold">Alive Cells</div>
+            <div className="text-lg font-bold text-cozy-brown">
               {Object.values(winner.cells).filter((c) => !c.destroyed).length} / 5
             </div>
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Rematch & Setup Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
             onClick={onPlayAgain}
-            className="w-full sm:w-auto px-6 py-3 bg-fantasy-gold hover:bg-fantasy-gold-light text-black font-serif font-black text-sm rounded-xl transition-all shadow hover:shadow-[0_0_15px_rgba(229,169,60,0.6)] cursor-pointer"
+            className="w-full sm:w-auto px-6 py-3 bg-cozy-gold hover:bg-cozy-gold-dark text-cozy-brown font-fredoka font-bold text-sm rounded-full shadow-md transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
           >
-            Play Again (Same Roster)
+            <span>Play Rematch</span>
+            <span>⭐</span>
           </button>
           <button
             onClick={onNewMatch}
-            className="w-full sm:w-auto px-6 py-3 bg-fantasy-card hover:bg-fantasy-border/50 text-fantasy-parchment border border-fantasy-border font-serif font-semibold text-sm rounded-xl transition-colors cursor-pointer"
+            className="w-full sm:w-auto px-6 py-3 bg-[#FAF5EB] hover:bg-[#F3E8D8] text-cozy-brown border-2 border-[#D8C7B0] font-fredoka font-semibold text-sm rounded-full transition-all cursor-pointer flex items-center justify-center gap-1.5"
           >
-            New Match Setup
+            <span>New Tournament</span>
+            <span>📜</span>
           </button>
         </div>
       </div>
     </div>
   );
 };
-

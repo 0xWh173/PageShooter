@@ -38,7 +38,7 @@ describe("React Components QA & Regression Tests", () => {
       expect(screen.getByPlaceholderText("Player 10")).toBeTruthy();
 
       // Submit setup
-      const submitBtn = screen.getByRole("button", { name: /Enter the Ancient Arena/i });
+      const submitBtn = screen.getByRole("button", { name: /Enter the Storybook Arena/i });
       fireEvent.click(submitBtn);
 
       expect(onStart).toHaveBeenCalledTimes(1);
@@ -64,8 +64,8 @@ describe("React Components QA & Regression Tests", () => {
       );
 
       // Banner must NOT be displayed
-      expect(screen.queryByText(/Active Match Discovered in Storage/i)).toBeNull();
-      expect(screen.queryByText(/Resume Match/i)).toBeNull();
+      expect(screen.queryByText(/Active Adventure Discovered/i)).toBeNull();
+      expect(screen.queryByText(/Resume Game/i)).toBeNull();
     });
 
     it("displays resume banner when saved match is ACTIVE", () => {
@@ -92,8 +92,8 @@ describe("React Components QA & Regression Tests", () => {
         />
       );
 
-      expect(screen.getByText(/Active Match Discovered in Storage/i)).toBeTruthy();
-      const resumeBtn = screen.getByRole("button", { name: /Resume Match/i });
+      expect(screen.getByText(/Active Adventure Discovered/i)).toBeTruthy();
+      const resumeBtn = screen.getByRole("button", { name: /Resume Game/i });
       fireEvent.click(resumeBtn);
       expect(onResume).toHaveBeenCalledTimes(1);
     });
@@ -126,7 +126,7 @@ describe("React Components QA & Regression Tests", () => {
       });
     });
 
-    it("renders destroyed cell with DEAD badge and does not trigger click", () => {
+    it("renders destroyed cell with POOFED badge and does not trigger click", () => {
       const cell: CellState = {
         value: 4,
         progress: 3,
@@ -144,7 +144,7 @@ describe("React Components QA & Regression Tests", () => {
         />
       );
 
-      expect(screen.getByText("DEAD")).toBeTruthy();
+      expect(screen.getByText("POOFED")).toBeTruthy();
       const element = screen.getByLabelText(/Cell 4: Destroyed/i);
       fireEvent.click(element);
       expect(onSelect).not.toHaveBeenCalled();
@@ -168,7 +168,7 @@ describe("React Components QA & Regression Tests", () => {
         />
       );
 
-      const targetBtn = screen.getByText("FIRE HERE");
+      const targetBtn = screen.getByText(/TARGET/i);
       fireEvent.click(targetBtn);
       expect(onSelect).toHaveBeenCalledTimes(1);
       expect(onSelect).toHaveBeenCalledWith(6);
@@ -189,7 +189,7 @@ describe("React Components QA & Regression Tests", () => {
         />
       );
 
-      const skipBtn = screen.getByRole("button", { name: /Fast Forward/i });
+      const skipBtn = screen.getByRole("button", { name: /Turn Leaf Fast/i });
       // Click multiple times rapidly
       fireEvent.click(skipBtn);
       fireEvent.click(skipBtn);

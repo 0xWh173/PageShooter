@@ -8,32 +8,30 @@ interface SetupScreenProps {
   onStartMatch: (playerNames: string[]) => void;
 }
 
-const DEFAULT_FANTASY_NAMES = [
-  "Aethelgard",
-  "Balthazar",
-  "Cassian",
-  "Darius",
-  "Elspeth",
-  "Faustina",
-  "Grimbold",
-  "Heliodor",
-  "Ignatius",
-  "Janus"
+const DEFAULT_COZY_NAMES = [
+  "Barnaby",
+  "Clover",
+  "Pip",
+  "Hazel",
+  "Oliver",
+  "Rowan",
+  "Milo",
+  "Fern",
+  "Bramble",
+  "Willow"
 ];
 
-const BACKUP_FANTASY_NAMES = [
-  "Lysander",
-  "Morgath",
-  "Nyx",
-  "Orion",
-  "Pendelton",
-  "Quintus",
-  "Ravena",
-  "Sylvana",
-  "Theron",
-  "Ulric",
-  "Valerius",
-  "Zephyra"
+const BACKUP_COZY_NAMES = [
+  "Jasper",
+  "Luna",
+  "Otis",
+  "Poppy",
+  "Finley",
+  "Rosie",
+  "Sprout",
+  "Twig",
+  "Waffles",
+  "Ziggy"
 ];
 
 export const SetupScreen: React.FC<SetupScreenProps> = ({
@@ -44,7 +42,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 }) => {
   const [playerCount, setPlayerCount] = useState<number>(5);
   const [playerNames, setPlayerNames] = useState<string[]>(() =>
-    DEFAULT_FANTASY_NAMES.slice(0, 5)
+    DEFAULT_COZY_NAMES.slice(0, 5)
   );
 
   const handlePlayerCountChange = (count: number) => {
@@ -52,7 +50,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
     setPlayerNames((prev) => {
       const next = [...prev];
       while (next.length < count) {
-        const candidate = DEFAULT_FANTASY_NAMES[next.length] || BACKUP_FANTASY_NAMES[next.length - DEFAULT_FANTASY_NAMES.length] || `Player ${next.length + 1}`;
+        const candidate = DEFAULT_COZY_NAMES[next.length] || BACKUP_COZY_NAMES[next.length - DEFAULT_COZY_NAMES.length] || `Hero ${next.length + 1}`;
         next.push(candidate);
       }
       return next.slice(0, count);
@@ -68,7 +66,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   };
 
   const handleRandomizeNames = () => {
-    const pool = [...DEFAULT_FANTASY_NAMES, ...BACKUP_FANTASY_NAMES].sort(() => Math.random() - 0.5);
+    const pool = [...DEFAULT_COZY_NAMES, ...BACKUP_COZY_NAMES].sort(() => Math.random() - 0.5);
     setPlayerNames(pool.slice(0, playerCount));
   };
 
@@ -79,45 +77,51 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-fantasy-bg text-fantasy-parchment flex flex-col items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-fantasy-card border border-fantasy-border/80 rounded-3xl p-6 sm:p-10 shadow-2xl">
+    <div className="min-h-screen bg-notebook-pattern text-cozy-brown flex flex-col items-center justify-center p-4 select-none">
+      <div className="max-w-2xl w-full bg-[#FFFDF9] border-3 border-[#D8C7B0] rounded-3xl p-6 sm:p-10 shadow-cozy-lg relative overflow-hidden">
+        {/* Decorative corner illustrations */}
+        <div className="absolute top-3 left-4 text-2xl animate-float">🌸</div>
+        <div className="absolute top-3 right-4 text-2xl animate-float" style={{ animationDelay: "1.5s" }}>🌿</div>
+        <div className="absolute bottom-3 left-4 text-xl">✦</div>
+        <div className="absolute bottom-3 right-4 text-xl">✨</div>
+
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="text-4xl sm:text-5xl mb-2">📖 ⚔️</div>
-          <h1 className="font-serif text-3xl sm:text-4xl font-black text-fantasy-gold tracking-wide">
-            PAGE SHOOTER
+        <div className="text-center mb-6">
+          <div className="text-5xl mb-2 animate-float">📖 ✏️</div>
+          <h1 className="font-fredoka text-3xl sm:text-4xl font-black text-cozy-brown tracking-tight">
+            PageShooter
           </h1>
-          <p className="text-xs sm:text-sm font-serif italic text-fantasy-parchment/70 mt-1">
-            "An Ancient Magical Book Multiplayer Game • Offline Pass & Play"
+          <p className="text-sm font-hand text-cozy-brown-light mt-1 text-base">
+            "A warm, hand-drawn paper battlefield for 5 to 10 friends."
           </p>
         </div>
 
         {/* Saved Match Notice (If Active Match Exists in IndexedDB) */}
         {savedMatch && savedMatch.phase === "ACTIVE" && (
-          <div className="mb-8 p-4 rounded-2xl bg-fantasy-gold/10 border-2 border-fantasy-gold/50 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in">
+          <div className="mb-6 p-4 rounded-2xl bg-cozy-gold-light/60 border-2 border-cozy-gold flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in">
             <div className="text-left">
               <div className="flex items-center gap-2">
-                <span className="text-base">💾</span>
-                <span className="font-serif font-bold text-fantasy-gold text-sm">
-                  Active Match Discovered in Storage
+                <span className="text-xl">🔖</span>
+                <span className="font-fredoka font-bold text-cozy-brown text-sm sm:text-base">
+                  Active Adventure Discovered!
                 </span>
               </div>
-              <p className="text-xs text-fantasy-parchment/80 mt-1 font-mono">
-                {savedMatch.players.length} Players • Turn #{savedMatch.turn.turnNumber} • Phase: {savedMatch.phase}
+              <p className="text-xs font-hand text-cozy-brown-light mt-0.5">
+                {savedMatch.players.length} Players • Page #{savedMatch.turn.turnNumber} • In Progress
               </p>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={onResumeSavedMatch}
-                className="flex-1 sm:flex-none px-4 py-2 bg-fantasy-gold hover:bg-fantasy-gold-light text-black font-serif font-bold text-xs rounded-xl transition-all shadow cursor-pointer"
+                className="flex-1 sm:flex-none px-4 py-2 bg-cozy-gold hover:bg-cozy-gold-dark text-cozy-brown font-fredoka font-bold text-xs rounded-full shadow-sm transition-all cursor-pointer"
               >
-                Resume Match ➔
+                Resume Game ➔
               </button>
               <button
                 type="button"
                 onClick={onDiscardSavedMatch}
-                className="px-3 py-2 bg-fantasy-bg hover:bg-fantasy-crimson/30 text-fantasy-parchment/60 hover:text-fantasy-crimson border border-fantasy-border text-xs rounded-xl transition-colors cursor-pointer"
+                className="px-3 py-2 bg-[#FAF5EB] hover:bg-cozy-coral/20 text-cozy-brown-light hover:text-cozy-coral border border-[#D8C7B0] text-xs font-fredoka font-medium rounded-full transition-colors cursor-pointer"
                 title="Discard saved match"
               >
                 Discard
@@ -130,8 +134,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
         <form onSubmit={handleStart} className="space-y-6">
           {/* Player Count Selector */}
           <div>
-            <label className="block text-xs font-mono uppercase tracking-wider text-fantasy-parchment/80 mb-2">
-              Select Combatant Count (5 – 10 Players)
+            <label className="block text-xs font-fredoka font-bold uppercase tracking-wider text-cozy-brown-light mb-2">
+              Number of Storytellers (5 – 10 Players)
             </label>
             <div className="flex items-center justify-between gap-1.5 sm:gap-2">
               {[5, 6, 7, 8, 9, 10].map((num) => (
@@ -140,10 +144,10 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                   key={num}
                   onClick={() => handlePlayerCountChange(num)}
                   className={`
-                    flex-1 py-2 sm:py-2.5 rounded-xl font-mono text-sm sm:text-base font-bold transition-all cursor-pointer
+                    flex-1 py-2 sm:py-2.5 rounded-2xl font-fredoka text-sm sm:text-base font-bold transition-all cursor-pointer
                     ${playerCount === num
-                      ? "bg-fantasy-gold text-black shadow-[0_0_15px_rgba(229,169,60,0.4)] scale-105"
-                      : "bg-fantasy-bg border border-fantasy-border/60 text-fantasy-parchment/70 hover:border-fantasy-gold/50"
+                      ? "bg-cozy-gold text-cozy-brown shadow-cozy scale-105 border-2 border-cozy-gold-dark"
+                      : "bg-[#FAF5EB] border-2 border-[#E2D3BE] text-cozy-brown-light hover:border-cozy-gold"
                     }
                   `}
                 >
@@ -156,25 +160,26 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
           {/* Player Names Configuration */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-mono uppercase tracking-wider text-fantasy-parchment/80">
-                Combatant Names & Seats
+              <label className="text-xs font-fredoka font-bold uppercase tracking-wider text-cozy-brown-light">
+                Storyteller Names
               </label>
               <button
                 type="button"
                 onClick={handleRandomizeNames}
-                className="text-xs font-mono text-fantasy-gold hover:underline cursor-pointer"
+                className="text-xs font-fredoka font-semibold text-cozy-gold-dark hover:underline cursor-pointer flex items-center gap-1"
               >
-                🎲 Randomize Names
+                <span>🎲</span>
+                <span>Randomize Names</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
               {Array.from({ length: playerCount }).map((_, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center gap-2 bg-fantasy-bg/60 border border-fantasy-border/60 rounded-xl px-3 py-1.5 focus-within:border-fantasy-gold/60"
+                  className="flex items-center gap-2 bg-[#FAF5EB] border-2 border-[#E2D3BE] rounded-2xl px-3 py-1.5 focus-within:border-cozy-gold transition-colors"
                 >
-                  <span className="font-mono text-xs font-bold text-fantasy-gold min-w-[28px]">
+                  <span className="font-fredoka text-xs font-bold text-cozy-brown bg-cozy-gold/30 px-1.5 py-0.5 rounded-md min-w-[28px] text-center">
                     P{idx + 1}
                   </span>
                   <input
@@ -183,22 +188,23 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                     value={playerNames[idx] || ""}
                     onChange={(e) => handleNameChange(idx, e.target.value)}
                     placeholder={`Player ${idx + 1}`}
-                    className="w-full bg-transparent text-sm font-serif text-fantasy-parchment focus:outline-none placeholder:text-fantasy-parchment/30"
+                    className="w-full bg-transparent text-sm font-fredoka font-semibold text-cozy-brown focus:outline-none placeholder:text-cozy-brown-light/40"
                   />
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-fantasy-parchment/50 italic mt-2">
-              Positions P1 through P{playerCount} and initial turn order will be randomly assigned at match creation according to the ancient rules.
+            <p className="text-[11px] font-hand text-cozy-brown-light mt-2">
+              Seats P1 to P{playerCount} and initial turn order will be randomly shuffled when the story begins!
             </p>
           </div>
 
           {/* Start Battle Button */}
           <button
             type="submit"
-            className="w-full py-4 bg-gradient-to-r from-fantasy-gold via-fantasy-gold-light to-fantasy-gold hover:from-fantasy-gold-light hover:to-fantasy-gold text-black font-serif font-black text-base sm:text-lg rounded-2xl transition-all shadow-[0_0_25px_rgba(229,169,60,0.5)] active:scale-[0.98] cursor-pointer"
+            className="w-full py-3.5 sm:py-4 bg-cozy-gold hover:bg-cozy-gold-dark text-cozy-brown font-fredoka font-black text-base sm:text-lg rounded-full transition-all shadow-md hover:scale-[1.01] active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 border-2 border-cozy-gold-dark"
           >
-            Enter the Ancient Arena ⚔️
+            <span>Enter the Storybook Arena</span>
+            <span>✨</span>
           </button>
         </form>
       </div>

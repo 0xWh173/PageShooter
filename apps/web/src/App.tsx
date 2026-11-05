@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import type { MatchState, PlayerState, CellValue } from "@pageshooter/shared";
+import type { MatchState, PlayerState, CellValue, MatchEvent } from "@pageshooter/shared";
 import {
   createInitialMatchState,
   applyRoll,
@@ -12,6 +12,7 @@ import { SetupScreen } from "./components/SetupScreen.js";
 import { TurnHUD } from "./components/TurnHUD.js";
 import { Battlefield } from "./components/Battlefield.js";
 import { BookCinematic } from "./components/BookCinematic.js";
+import { CombatAnimation } from "./components/CombatAnimation.js";
 import { EliminationModal } from "./components/EliminationModal.js";
 import { VictoryModal } from "./components/VictoryModal.js";
 
@@ -22,26 +23,125 @@ interface CinematicState {
   nextMatchState: MatchState;
 }
 
+interface CombatState {
+  shooterName: string;
+  shooterPosition: string;
+  victimName: string;
+  victimPosition: string;
+  targetCellValue: CellValue;
+  nextState: MatchState;
+  events: MatchEvent[];
+}
+
+function getQaViewParam(): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("qa_view");
+}
+
+function createQa5pState(): MatchState {
+  const fiveNames = ["Barnaby", "Clover", "Pip", "Hazel", "Oliver"];
+  const inputs = fiveNames.map((name, idx) => ({
+    playerId: `p_${idx + 1}`,
+    username: name,
+    avatarId: `avatar_${idx + 1}`
+  }));
+  const { state } = createInitialMatchState("qa-5p", "storybook-arena", inputs);
+  state.players[0].cells[4].progress = 5;
+  state.players[0].cells[4].hasGun = true;
+  state.turn.phase = "AWAITING_SHOT";
+  state.turn.pendingShot = true;
+  state.turn.rolledCell = 4;
+  return state;
+}
+
 export const App: React.FC = () => {
-  const [matchState, setMatchState] = useState<MatchState | null>(null);
+  const qaView = getQaViewParam();
+
+  const [matchState, setMatchState] = useState<MatchState | null>(() => {
+    if (!qaView || qaView === "setup") return null;
+    if (qaView === "5p" || qaView === "cinematic" || qaView === "combat" || qaView === "destruction" || qaView === "elimination") {
+      return createQa5pState();
+    }
+    if (qaView === "10p") {
+      const tenNames = ["Barnaby", "Clover", "Pip", "Hazel", "Oliver", "Rowan", "Milo", "Fern", "Bramble", "Willow"];
+      const inputs = tenNames.map((name, idx) => ({
+        playerId: `p_${idx + 1}`,
+        username: name,
+        avatarId: `avatar_${idx + 1}`
+      }));
+      return createInitialMatchState("qa-10p", "storybook-arena", inputs).state;
+    }
+    if (qaView === "victory") {
+      const state = createQa5pState();
+      state.phase = "COMPLETED";
+      state.winnerPlayerId = state.players[0].playerId;
+      state.winReason = "LAST_PLAYER_STANDING";
+      state.totalTurns = 24;
+      state.players[0].kills = 4;
+      state.players[0].cells[0].progress = 5;
+      state.players[0].cells[0].hasGun = true;
+      state.players[0].cells[4].progress = 3;
+      state.players[0].cells[8].progress = 4;
+      state.players[0].cells[2].destroyed = true;
+      state.players[0].cells[6].destroyed = true;
+      return state;
+    }
+    return null;
+  });
+
   const [savedMatch, setSavedMatch] = useState<MatchState | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [cinematicData, setCinematicData] = useState<CinematicState | null>(null);
-  const [eliminatedNoticePlayer, setEliminatedNoticePlayer] = useState<PlayerState | null>(null);
+  const [loading, setLoading] = useState<boolean>(() => !qaView);
+
+  const [cinematicData, setCinematicData] = useState<CinematicState | null>(() => {
+    if (qaView === "cinematic") {
+      const state = createQa5pState();
+      return {
+        pageNumber: 248,
+        outcome: 8,
+        consequenceText: "🎉 Cell #8 learned Arms!",
+        nextMatchState: state
+      };
+    }
+    return null;
+  });
+
+  const [combatData, setCombatData] = useState<CombatState | null>(() => {
+    if (qaView === "combat" || qaView === "destruction") {
+      const state = createQa5pState();
+      return {
+        shooterName: "Barnaby",
+        shooterPosition: "P1",
+        victimName: "Clover",
+        victimPosition: "P2",
+        targetCellValue: 2,
+        nextState: state,
+        events: []
+      };
+    }
+    return null;
+  });
+
+  const [eliminatedNoticePlayer, setEliminatedNoticePlayer] = useState<PlayerState | null>(() => {
+    if (qaView === "elimination") {
+      const state = createQa5pState();
+      return state.players[1];
+    }
+    return null;
+  });
+
   const isActionLockedRef = useRef<boolean>(false);
 
-  // Check IndexedDB for existing active match on initial load
+  // Check IndexedDB for existing active match on initial load (if not in QA mode)
   useEffect(() => {
+    if (qaView) return;
     let isMounted = true;
     loadOfflineMatch(true)
       .then((loaded) => {
         if (!isMounted) return;
         if (loaded && loaded.phase === "ACTIVE") {
-          // Exact recovery: immediately resume active game state on refresh
           setMatchState(loaded);
           setSavedMatch(loaded);
         } else {
-          // Completed or invalid matches are not resumable
           clearOfflineMatch().catch(() => {});
         }
       })
@@ -55,19 +155,19 @@ export const App: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [qaView]);
 
   // Start new match
   const handleStartMatch = async (playerNames: string[]) => {
     isActionLockedRef.current = false;
-    const matchId = `offline-match-${Date.now()}`;
+    const matchId = `cozy-match-${Date.now()}`;
     const playerInputs = playerNames.map((name, idx) => ({
       playerId: `p_${idx + 1}_${Date.now()}`,
       username: name,
       avatarId: `avatar_${idx + 1}`
     }));
 
-    const { state } = createInitialMatchState(matchId, "offline-arena", playerInputs);
+    const { state } = createInitialMatchState(matchId, "storybook-arena", playerInputs);
     await saveOfflineMatch(state);
     setMatchState(state);
     setSavedMatch(null);
@@ -95,6 +195,7 @@ export const App: React.FC = () => {
     setMatchState(null);
     setSavedMatch(null);
     setCinematicData(null);
+    setCombatData(null);
     setEliminatedNoticePlayer(null);
   };
 
@@ -105,7 +206,7 @@ export const App: React.FC = () => {
     await handleStartMatch(playerNames);
   };
 
-  // Roll book
+  // Roll storybook
   const handleRoll = async () => {
     if (isActionLockedRef.current) return;
     if (!matchState || matchState.turn.phase !== "AWAITING_ROLL") return;
@@ -136,12 +237,12 @@ export const App: React.FC = () => {
     let consequenceText: string;
     const targetCell = currentPlayer.cells[outcome];
     if (targetCell.destroyed) {
-      consequenceText = `Cell #${outcome} is already destroyed! Turn wasted.`;
+      consequenceText = `Cell #${outcome} was already poofed! Turn passes gently.`;
     } else if (targetCell.progress < 5) {
       const labels = ["Empty", "Face", "Body", "Legs", "Arms", "Gun"];
-      consequenceText = `Cell #${outcome} advanced to ${labels[targetCell.progress + 1]}!`;
+      consequenceText = `🎉 Cell #${outcome} learned ${labels[targetCell.progress + 1]}!`;
     } else {
-      consequenceText = `Bullet created! Mandatory shot required immediately!`;
+      consequenceText = `⭐ Star Bullet loaded! Pick an opponent cell to aim!`;
     }
 
     // 5. Trigger Cinematic
@@ -153,7 +254,7 @@ export const App: React.FC = () => {
     });
   };
 
-  // Complete cinematic
+  // Complete storybook cinematic
   const handleCinematicComplete = useCallback(() => {
     if (cinematicData) {
       setMatchState(cinematicData.nextMatchState);
@@ -169,49 +270,62 @@ export const App: React.FC = () => {
     const shooterId = matchState.turn.currentPlayerId;
     if (!shooterId) return;
 
+    const shooter = matchState.players.find((p) => p.playerId === shooterId);
+    const victim = matchState.players.find((p) => p.playerId === targetPlayerId);
+    if (!shooter || !victim) return;
+
     // Lock to prevent rapid double-clicks
     isActionLockedRef.current = true;
 
-    try {
-      // Audio effects
-      soundManager.playGunshot();
-      setTimeout(() => {
-        soundManager.playCellDestroyed();
-      }, 180);
+    // Apply shot in pure rules engine
+    const { state: nextState, events } = applyShot(
+      matchState,
+      shooterId,
+      targetPlayerId,
+      cellValue
+    );
 
-      // Apply shot in pure rules engine
-      const { state: nextState, events } = applyShot(
-        matchState,
-        shooterId,
-        targetPlayerId,
-        cellValue
-      );
+    // Persist immediately to IndexedDB
+    await saveOfflineMatch(nextState);
 
-      // Persist immediately to IndexedDB
-      await saveOfflineMatch(nextState);
-      setMatchState(nextState);
-
-      // Check if any player was eliminated by this shot
-      const eliminationEvent = events.find((e) => e.type === "PLAYER_ELIMINATED");
-      if (eliminationEvent && eliminationEvent.actorPlayerId) {
-        const eliminated = nextState.players.find(
-          (p) => p.playerId === eliminationEvent.actorPlayerId
-        );
-        if (eliminated) {
-          setEliminatedNoticePlayer(eliminated);
-        }
-      }
-    } finally {
-      isActionLockedRef.current = false;
-    }
+    // Trigger Playful Killing Sequence
+    setCombatData({
+      shooterName: shooter.username,
+      shooterPosition: shooter.position,
+      victimName: victim.username,
+      victimPosition: victim.position,
+      targetCellValue: cellValue,
+      nextState,
+      events
+    });
   };
+
+  // Complete combat animation
+  const handleCombatComplete = useCallback(() => {
+    if (!combatData) return;
+    const { nextState, events } = combatData;
+    setMatchState(nextState);
+    setCombatData(null);
+    isActionLockedRef.current = false;
+
+    // Check if any player was eliminated by this shot
+    const eliminationEvent = events.find((e) => e.type === "PLAYER_ELIMINATED");
+    if (eliminationEvent && eliminationEvent.actorPlayerId) {
+      const eliminated = nextState.players.find(
+        (p) => p.playerId === eliminationEvent.actorPlayerId
+      );
+      if (eliminated) {
+        setEliminatedNoticePlayer(eliminated);
+      }
+    }
+  }, [combatData]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-fantasy-bg flex flex-col items-center justify-center text-fantasy-parchment">
-        <span className="text-4xl animate-bounce mb-3">📜</span>
-        <div className="font-serif text-lg tracking-wider text-fantasy-gold">
-          Awakening Grimoire...
+      <div className="min-h-screen bg-notebook-pattern flex flex-col items-center justify-center text-cozy-brown">
+        <span className="text-4xl animate-bounce mb-3">📖</span>
+        <div className="font-fredoka text-lg font-bold tracking-wider text-cozy-brown">
+          Opening Storybook Folio...
         </div>
       </div>
     );
@@ -230,17 +344,17 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-fantasy-bg text-fantasy-parchment flex flex-col justify-between selection:bg-fantasy-gold selection:text-black">
+    <div className="min-h-screen bg-notebook-pattern text-cozy-brown flex flex-col justify-between selection:bg-cozy-gold selection:text-cozy-brown">
       {/* Turn HUD Header */}
       <TurnHUD
         matchState={matchState}
-        isRolling={cinematicData !== null}
+        isRolling={cinematicData !== null || combatData !== null}
         onRoll={handleRoll}
         onResetMatch={handleResetMatch}
       />
 
-      {/* Main Battlefield Area */}
-      <main className="flex-1 flex flex-col justify-center py-4">
+      {/* Main Matrix Battlefield Area */}
+      <main className="flex-1 flex flex-col justify-center py-2 sm:py-4">
         <Battlefield
           matchState={matchState}
           onSelectTarget={handleSelectTarget}
@@ -248,17 +362,29 @@ export const App: React.FC = () => {
       </main>
 
       {/* Footer / Status bar */}
-      <footer className="w-full border-t border-fantasy-border/40 py-2.5 px-4 text-center text-[11px] font-mono text-fantasy-parchment/40">
-        <span>PageShooter v1.0 • Offline Mode (Local Pass & Play) • Auto-saved to IndexedDB</span>
+      <footer className="w-full border-t border-[#E2D3BE] bg-[#FFFDF9]/60 py-2 px-4 text-center text-xs font-hand text-cozy-brown-light">
+        <span>PageShooter • Cozy Storybook Edition • Auto-saved to browser</span>
       </footer>
 
-      {/* Book Opening Cinematic Modal */}
+      {/* Storybook Opening Cinematic Modal */}
       {cinematicData && (
         <BookCinematic
           pageNumber={cinematicData.pageNumber}
           outcome={cinematicData.outcome}
           consequenceText={cinematicData.consequenceText}
           onComplete={handleCinematicComplete}
+        />
+      )}
+
+      {/* Playful Killing Animation Modal */}
+      {combatData && (
+        <CombatAnimation
+          shooterName={combatData.shooterName}
+          shooterPosition={combatData.shooterPosition}
+          victimName={combatData.victimName}
+          victimPosition={combatData.victimPosition}
+          targetCellValue={combatData.targetCellValue}
+          onComplete={handleCombatComplete}
         />
       )}
 

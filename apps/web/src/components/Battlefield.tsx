@@ -17,117 +17,168 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
   const activeBulletCell = isAwaitingShot ? matchState.turn.rolledCell : null;
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 py-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        {matchState.players.map((player) => {
-          const isCurrentTurn = player.playerId === currentTurnPlayerId;
-          const isEliminated = player.status === "ELIMINATED";
-          const canBeTargeted = isAwaitingShot && !isCurrentTurn && !isEliminated;
+    <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 py-2">
+      {/* Battlefield Frame */}
+      <div className="bg-[#FFFDF9] border-2 border-[#D8C7B0] rounded-3xl p-3 sm:p-5 shadow-cozy-lg relative overflow-hidden">
+        {/* Decorative corner leaves / doodles */}
+        <div className="absolute top-2 left-3 text-xs opacity-40 select-none">🌿 ✦</div>
+        <div className="absolute top-2 right-3 text-xs opacity-40 select-none">✦ 🌸</div>
 
-          return (
-            <div
-              key={player.playerId}
-              className={`
-                relative flex flex-col rounded-xl border p-3 transition-all duration-300
-                ${isEliminated
-                  ? "bg-black/50 border-fantasy-border/30 opacity-45"
-                  : isCurrentTurn
-                  ? "bg-fantasy-card border-fantasy-gold shadow-[0_0_20px_rgba(229,169,60,0.3)] ring-1 ring-fantasy-gold/50"
-                  : "bg-fantasy-card/90 border-fantasy-border/60 hover:border-fantasy-border"
-                }
-              `}
-            >
-              {/* Player Header */}
-              <div className="flex items-center justify-between border-b border-fantasy-border/50 pb-2 mb-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    className={`
-                      font-mono text-xs font-black px-2 py-0.5 rounded
-                      ${isCurrentTurn
-                        ? "bg-fantasy-gold text-black shadow-sm font-bold"
-                        : "bg-fantasy-border/60 text-fantasy-parchment"
-                      }
-                    `}
-                  >
-                    {player.position}
-                  </span>
-                  <span
-                    className={`font-serif text-sm font-semibold truncate ${
-                      isEliminated
-                        ? "text-fantasy-parchment/40 line-through"
-                        : isCurrentTurn
-                        ? "text-fantasy-gold-light"
-                        : "text-fantasy-parchment"
-                    }`}
-                    title={player.username}
-                  >
-                    {player.username}
-                  </span>
-                </div>
+        {/* Header subtitle */}
+        <div className="flex items-center justify-between mb-3 px-2 border-b border-[#EADCC9] pb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">📋</span>
+            <span className="font-fredoka font-semibold text-cozy-brown text-sm sm:text-base">
+              The Grand Stickman Matrix
+            </span>
+          </div>
+          <div className="text-xs font-hand text-cozy-brown-light">
+            ← Scroll horizontally to view all seats →
+          </div>
+        </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Kills Badge */}
-                  <span
-                    className="text-[11px] font-mono text-fantasy-parchment/70 bg-fantasy-bg/80 px-1.5 py-0.5 rounded border border-fantasy-border/40"
-                    title="Destroyed opponent cells"
-                  >
-                    {player.kills} ☠️
-                  </span>
-
-                  {/* Status Indicator */}
-                  {isEliminated && (
-                    <span className="text-[10px] font-mono font-bold text-fantasy-crimson bg-fantasy-crimson/15 px-1.5 py-0.5 rounded border border-fantasy-crimson/30">
-                      FALLEN
+        {/* Scrollable Matrix Table */}
+        <div className="overflow-x-auto pb-3 pt-1">
+          <div className="inline-block min-w-full align-middle">
+            <table className="border-collapse table-fixed select-none">
+              <thead>
+                <tr>
+                  {/* Top-Left Corner Header (Row Index Header) */}
+                  <th className="sticky left-0 z-20 bg-[#F5ECDC] border-2 border-[#D8C7B0] rounded-tl-2xl p-2 w-20 sm:w-24 text-center shadow-sm">
+                    <span className="font-fredoka font-bold text-xs text-cozy-brown uppercase tracking-wider block">
+                      Folio #
                     </span>
-                  )}
-                  {isCurrentTurn && !isEliminated && (
-                    <span className="text-[10px] font-mono font-bold text-black bg-fantasy-gold px-1.5 py-0.5 rounded animate-pulse">
-                      ACTIVE
+                    <span className="text-[10px] font-hand text-cozy-brown-light block">
+                      (Row)
                     </span>
-                  )}
-                </div>
-              </div>
+                  </th>
 
-              {/* Stickman Cells Row */}
-              <div className="grid grid-cols-5 gap-1.5">
-                {CELL_VALUES.map((val) => {
-                  const cell = player.cells[val];
-                  const hasBullet = isCurrentTurn && activeBulletCell === val;
-                  const targetable = canBeTargeted && !cell.destroyed;
+                  {/* Player Column Headers */}
+                  {matchState.players.map((player) => {
+                    const isCurrentTurn = player.playerId === currentTurnPlayerId;
+                    const isEliminated = player.status === "ELIMINATED";
 
-                  return (
-                    <StickmanCell
-                      key={val}
-                      cell={cell}
-                      cellValue={val}
-                      isShooter={isCurrentTurn}
-                      hasActiveBullet={hasBullet}
-                      isTargetable={targetable}
-                      onTargetSelect={() => {
-                        if (onSelectTarget && targetable) {
-                          onSelectTarget(player.playerId, val);
-                        }
-                      }}
-                    />
-                  );
-                })}
-              </div>
+                    return (
+                      <th
+                        key={player.playerId}
+                        className={`
+                          border-2 p-2 sm:p-2.5 transition-all duration-300 w-32 sm:w-36 text-center
+                          ${isEliminated
+                            ? "bg-[#F0E6D6]/60 border-[#D8C7B0] opacity-50"
+                            : isCurrentTurn
+                            ? "bg-cozy-gold-light border-cozy-gold shadow-md"
+                            : "bg-[#FAF5EB] border-[#D8C7B0]"
+                          }
+                        `}
+                      >
+                        {/* Position Badge & Status */}
+                        <div className="flex items-center justify-center gap-1.5 mb-1">
+                          <span
+                            className={`
+                              font-fredoka text-xs font-bold px-2 py-0.5 rounded-full shadow-xs
+                              ${isCurrentTurn
+                                ? "bg-cozy-gold text-cozy-brown"
+                                : "bg-[#E6D7C3] text-cozy-brown"
+                              }
+                            `}
+                          >
+                            {player.position}
+                          </span>
+                          {isCurrentTurn && !isEliminated && (
+                            <span className="text-xs animate-bounce" title="Active turn">
+                              ⭐
+                            </span>
+                          )}
+                          {isEliminated && (
+                            <span className="text-[10px] font-fredoka font-bold text-cozy-coral bg-cozy-coral/15 px-1.5 py-0.2 rounded">
+                              OUT
+                            </span>
+                          )}
+                        </div>
 
-              {/* Eliminated Overlay Banner */}
-              {isEliminated && (
-                <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center pointer-events-none">
-                  <div className="text-center px-4 py-2 border border-fantasy-crimson/40 bg-black/85 rounded-lg shadow-lg">
-                    <span className="text-fantasy-crimson font-serif font-black tracking-widest text-sm uppercase">
-                      ELIMINATED
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+                        {/* Player Name */}
+                        <div
+                          className={`font-fredoka text-xs sm:text-sm font-semibold truncate px-1 ${
+                            isEliminated
+                              ? "text-cozy-brown-light line-through"
+                              : isCurrentTurn
+                              ? "text-cozy-brown font-bold"
+                              : "text-cozy-brown"
+                          }`}
+                          title={player.username}
+                        >
+                          {player.username}
+                        </div>
+
+                        {/* Kills Counter */}
+                        <div className="text-[10px] font-hand text-cozy-brown-light mt-0.5">
+                          {player.kills} {player.kills === 1 ? "poof" : "poofs"} ⭐
+                        </div>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+
+              <tbody>
+                {CELL_VALUES.map((val) => (
+                  <tr key={val} className="h-32 sm:h-36">
+                    {/* Fixed Left Header for Row (Cell 0, 2, 4, 6, 8) */}
+                    <th className="sticky left-0 z-10 bg-[#F5ECDC] border-2 border-[#D8C7B0] p-2 text-center align-middle shadow-sm">
+                      <div className="flex flex-col items-center justify-center">
+                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-cozy-gold/25 border-2 border-cozy-gold/50 font-fredoka font-bold text-sm text-cozy-brown shadow-xs">
+                          {val}
+                        </span>
+                        <span className="text-[10px] font-hand font-bold text-cozy-brown-light mt-1 uppercase tracking-tight">
+                          Cell #{val}
+                        </span>
+                      </div>
+                    </th>
+
+                    {/* Matrix Cells Across All Players */}
+                    {matchState.players.map((player) => {
+                      const isCurrentTurn = player.playerId === currentTurnPlayerId;
+                      const isEliminated = player.status === "ELIMINATED";
+                      const canBeTargeted = isAwaitingShot && !isCurrentTurn && !isEliminated;
+                      const cell = player.cells[val];
+                      const hasBullet = isCurrentTurn && activeBulletCell === val;
+                      const targetable = canBeTargeted && !cell.destroyed;
+
+                      return (
+                        <td
+                          key={player.playerId + "_" + val}
+                          className={`
+                            border-2 p-1.5 sm:p-2 align-middle transition-colors duration-200
+                            ${isEliminated
+                              ? "bg-[#F3EAE0]/40 border-[#E2D4C2]"
+                              : isCurrentTurn
+                              ? "bg-cozy-gold-light/25 border-cozy-gold/50"
+                              : "bg-[#FFFDF9] border-[#E8DAC8]"
+                            }
+                          `}
+                        >
+                          <StickmanCell
+                            cell={cell}
+                            cellValue={val}
+                            isShooter={isCurrentTurn}
+                            hasActiveBullet={hasBullet}
+                            isTargetable={targetable}
+                            onTargetSelect={() => {
+                              if (onSelectTarget && targetable) {
+                                onSelectTarget(player.playerId, val);
+                              }
+                            }}
+                          />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
-
