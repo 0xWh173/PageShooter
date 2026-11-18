@@ -57,11 +57,6 @@ export const HandDrawnStickman: React.FC<HandDrawnStickmanProps> = ({
     pose === "sheathe" ||
     pose === "sheathed";
 
-  // Head center and scale
-  const hx = 50;
-  const hy = 26;
-  const hr = 15;
-
   return (
     <svg
       viewBox="0 0 100 120"
@@ -69,250 +64,236 @@ export const HandDrawnStickman: React.FC<HandDrawnStickmanProps> = ({
       style={{ shapeRendering: "geometricPrecision" }}
       aria-label={`${char.name} (${char.title}) - Stage ${progress} ${isDead ? "(Eliminated)" : ""}`}
     >
-      {/* 1. Ground Shadow (Baseline Y=110) */}
+      {/* 1. Smoky Dojo Ground Shadow (Baseline Y=111) */}
       <ellipse
         cx="50"
-        cy="112"
-        rx="22"
+        cy="111"
+        rx={progress >= 3 ? "25" : "18"}
         ry="3.5"
-        fill="rgba(117, 104, 92, 0.22)"
+        fill="rgba(15, 18, 21, 0.25)"
       />
 
-      {/* 2. Empty Stage Placeholder (Stage 0) */}
+      {/* 2. Stage 0: Uninked Manga Panel Silhouette */}
       {progress === 0 && !isDead && (
-        <g stroke="#C4B5A5" strokeWidth="2" strokeDasharray="3 3" fill="none">
-          <ellipse cx="50" cy="110" rx="16" ry="3" />
-          <circle cx="50" cy="26" r="14" opacity="0.4" />
+        <g id="manga-samurai-stage-0" opacity="0.35">
+          <circle cx="50" cy="27" r="13.5" stroke="#1C1917" strokeWidth="1.8" strokeDasharray="3 3" fill="none" />
+          {/* Ghosted Headband Tails */}
+          <path d="M 37 23 Q 24 20 16 25" stroke="#1C1917" strokeWidth="1.5" strokeDasharray="3 2" fill="none" />
+          <ellipse cx="50" cy="109" rx="16" ry="2.8" stroke="#1C1917" strokeWidth="1.5" strokeDasharray="3 3" fill="none" />
         </g>
       )}
 
-      {/* 3. SHADOW SCYTHE ARMED STATE (When cell gets a bullet / Stage 5) */}
+      {/* 3. STAGE 5 / ARMED STATE: Manga Samurai with Gleaming Silver Katana (Matching Video Frame 00:00 & 00:06) */}
       {hasGun && !isDead ? (
-        renderShadowScytheArmed(char, pose, tint)
+        renderMangaSamuraiArmed(char, pose, tint)
       ) : progress > 0 && !isDead ? (
-        <g
-          stroke="#1F1A16"
-          strokeWidth="3.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        >
-          {/* LEGS (Stage 3 onwards) */}
+        /* 4. STAGES 1–4: PROGRESSIVE MANGA SAMURAI STICKMAN (Matching Video Protagonist) */
+        <g id={`manga-samurai-stage-${progress}`}>
+          {/* STAGE 4 COMPONENT (At Waist): Ornate Black & Gold Filigree Scabbard (Saya) */}
+          {progress >= 4 && renderOrnateGoldScabbard(42, 66, 14, 96)}
+
+          {/* STAGE 3: Wide Flowing Samurai Hakama Trousers & Planted Stance */}
           {progress >= 3 && (
-            <g>
-              {isAimed ? (
-                // Wide solid shooting stance
+            <g id="manga-samurai-hakama">
+              {pose === "recoil" ? (
                 <g>
-                  <line x1="50" y1="76" x2="34" y2="108" />
-                  <ellipse cx="32" cy="109" rx="5" ry="2.5" fill="#1F1A16" />
-                  <line x1="50" y1="76" x2="68" y2="108" />
-                  <ellipse cx="70" cy="109" rx="5" ry="2.5" fill="#1F1A16" />
-                </g>
-              ) : pose === "recoil" ? (
-                // Knocked back legs
-                <g>
-                  <line x1="46" y1="76" x2="28" y2="106" />
-                  <ellipse cx="26" cy="107" rx="5" ry="2.5" fill="#1F1A16" />
-                  <line x1="46" y1="76" x2="54" y2="104" />
-                  <ellipse cx="56" cy="105" rx="5" ry="2.5" fill="#1F1A16" />
+                  <path d="M 41 68 L 24 102 L 34 105 L 47 72 Z" fill="#0F1215" stroke="#2A323B" strokeWidth="1" />
+                  <path d="M 49 68 L 58 103 L 68 101 L 55 70 Z" fill="#0F1215" stroke="#2A323B" strokeWidth="1" />
                 </g>
               ) : (
-                // Standard standing legs
                 <g>
-                  <line x1="50" y1="76" x2="38" y2="108" />
-                  <ellipse cx="36" cy="109" rx="5" ry="2.5" fill="#1F1A16" />
-                  <line x1="50" y1="76" x2="62" y2="108" />
-                  <ellipse cx="64" cy="109" rx="5" ry="2.5" fill="#1F1A16" />
+                  {/* Wide Left Hakama Leg */}
+                  <path
+                    d="M 39 67 L 23 103 L 38 105 L 47 73 Z"
+                    fill="#0F1215"
+                    stroke="#2A323B"
+                    strokeWidth="1.1"
+                    strokeLinejoin="round"
+                  />
+                  {/* Wide Right Hakama Leg */}
+                  <path
+                    d="M 48 67 L 54 105 L 70 103 L 57 67 Z"
+                    fill="#0F1215"
+                    stroke="#2A323B"
+                    strokeWidth="1.1"
+                    strokeLinejoin="round"
+                  />
+                  {/* Hakama Cloth Pleat Highlights */}
+                  <line x1="39" y1="72" x2="30" y2="101" stroke="#36404A" strokeWidth="1" />
+                  <line x1="53" y1="72" x2="61" y2="101" stroke="#36404A" strokeWidth="1" />
+                  {/* Planted Feet */}
+                  <path d="M 21 108 L 32 108 L 30 104 L 24 104 Z" fill="#0F1215" />
+                  <path d="M 61 108 L 72 108 L 68 104 L 62 104 Z" fill="#0F1215" />
                 </g>
               )}
             </g>
           )}
 
-          {/* TORSO / SPINE (Stage 2 onwards) */}
+          {/* STAGE 2: Sleeveless Black Samurai Gi / Haori with V-Neck Lapel & Grey Obi Sash */}
           {progress >= 2 && (
-            <g>
-              {pose === "recoil" ? (
-                <line x1="46" y1="42" x2="44" y2="76" strokeWidth="3.4" />
-              ) : isAimed ? (
-                <line x1="50" y1="42" x2="48" y2="76" strokeWidth="3.4" />
-              ) : (
-                <line x1="50" y1="42" x2="50" y2="76" strokeWidth="3.4" />
-              )}
-
-              {/* Clothing Details */}
+            <g id="manga-samurai-torso">
+              {/* Sleeveless Gi Torso Silhouette */}
+              <path
+                d="M 37 40 L 58 40 L 56 67 L 39 67 Z"
+                fill="#0F1215"
+                stroke="#2A323B"
+                strokeWidth="1.1"
+                strokeLinejoin="round"
+              />
+              {/* Sharp Shoulder Caps (Matching Video Frame 00:00) */}
+              <polygon points="34,39 43,39 40,46" fill="#0F1215" stroke="#36404A" strokeWidth="1" />
+              <polygon points="52,39 61,39 56,46" fill="#0F1215" stroke="#36404A" strokeWidth="1" />
+              {/* V-Neck Gi Crossover Lapel Lines */}
+              <line x1="42" y1="40" x2="49" y2="57" stroke="#3E4852" strokeWidth="1.5" />
+              <line x1="53" y1="40" x2="46" y2="52" stroke="#3E4852" strokeWidth="1.5" />
+              {/* Grey Waist Sash (Obi) with Subtle Character Tint Thread */}
+              <rect x="38" y="61" width="19" height="6.5" rx="1" fill="#3B434C" stroke="#1C1917" strokeWidth="1" />
+              <line x1="39" y1="64" x2="56" y2="64" stroke={tint} strokeWidth="1.3" opacity="0.85" />
               {renderClothing(char.clothing, tint)}
             </g>
           )}
 
-          {/* ARMS & HANDS (Stage 4 onwards) */}
+          {/* STAGE 4: Sleek Black Martial Arms & Diamond-Wrapped Katana Hilt Grip */}
           {progress >= 4 && (
-            <g>
-              {isAimed ? (
-                // Both arms extended forward holding weapon
-                <g>
-                  <line x1="50" y1="48" x2="68" y2="52" />
-                  <line x1="50" y1="48" x2="66" y2="58" />
-                  {renderCartoonWeapon(char.weapon, 68, 52, tint)}
-                </g>
-              ) : pose === "recoil" ? (
-                // Arms thrown back in surprise
-                <g>
-                  <line x1="46" y1="48" x2="28" y2="38" />
-                  <circle cx="26" cy="36" r="2.5" fill="#1F1A16" />
-                  <line x1="46" y1="48" x2="60" y2="34" />
-                  <circle cx="62" cy="32" r="2.5" fill="#1F1A16" />
+            <g id="manga-samurai-arms">
+              {pose === "recoil" ? (
+                <g stroke="#0F1215" strokeWidth="4" strokeLinecap="round">
+                  <line x1="38" y1="43" x2="22" y2="32" />
+                  <line x1="57" y1="43" x2="72" y2="30" />
                 </g>
               ) : (
-                // Relaxed / expressive casual arms
                 <g>
-                  <line x1="50" y1="48" x2="36" y2="64" />
-                  <circle cx="34" cy="66" r="2.5" fill="#1F1A16" />
-                  <line x1="50" y1="48" x2="64" y2="64" />
-                  <circle cx="66" cy="66" r="2.5" fill="#1F1A16" />
+                  {/* Left Arm holding ornate scabbard */}
+                  <path
+                    d="M 38 43 Q 29 54 36 65"
+                    fill="none"
+                    stroke="#0F1215"
+                    strokeWidth="4.2"
+                    strokeLinecap="round"
+                  />
+                  {/* Sheathed Diamond-Wrapped Katana Hilt (Tsuka) & Golden Tsuba Guard */}
+                  <line x1="42" y1="66" x2="55" y2="53" stroke="#1C1917" strokeWidth="4.2" strokeLinecap="round" />
+                  <line x1="44" y1="64" x2="54" y2="54" stroke="#CBD5E1" strokeWidth="2" strokeDasharray="1.8 1.8" />
+                  {/* Golden Square Tsuba Guard */}
+                  <rect
+                    x="40"
+                    y="63"
+                    width="5.5"
+                    height="2.5"
+                    fill="#D4AF37"
+                    stroke="#1C1917"
+                    strokeWidth="0.6"
+                    transform="rotate(45 42 65)"
+                  />
+                  {/* Right Arm poised on Katana Hilt */}
+                  <path
+                    d="M 57 43 Q 66 50 53 56"
+                    fill="none"
+                    stroke="#0F1215"
+                    strokeWidth="4.2"
+                    strokeLinecap="round"
+                  />
+                  {/* 4-Point White Star Glint at Tsuba (Teasing Stage 5 Draw) */}
+                  <g transform="translate(43, 64)">
+                    <polygon points="0,-6 1.5,-1.5 6,0 1.5,1.5 0,6 -1.5,1.5 -6,0 -1.5,-1.5" fill="#FFFFFF" />
+                  </g>
                 </g>
               )}
             </g>
           )}
 
-          {/* HEAD & FACIAL FEATURES (Stage 1 onwards) */}
+          {/* STAGE 1+: Pitch-Black Manga Samurai Head, Flowing Headband Tails & Glowing White Eyes */}
           <g id="stickman-head">
-            {/* White parchment fill head circle with organic outline */}
-            <circle
-              cx={hx}
-              cy={hy}
-              r={hr}
-              fill="#FFFDF8"
-              stroke="#1F1A16"
-              strokeWidth="3.2"
+            {/* Flowing Black Headband Tails (Hachimaki) Streaming Behind Head */}
+            <path
+              d="M 36 22 Q 20 17 9 22 Q 19 26 35 25 Z"
+              fill="#0F1215"
+              stroke="#2A323B"
+              strokeWidth="0.9"
+            />
+            <path
+              d="M 35 26 Q 21 27 12 34 Q 23 34 36 29 Z"
+              fill="#0F1215"
+              stroke="#2A323B"
+              strokeWidth="0.9"
             />
 
-            {/* Hairstyle */}
-            {renderHair(char.hair, hx, hy, hr, tint)}
+            {/* Pitch-Black Round Samurai Head with Subtle Rim Contour */}
+            <circle
+              cx="48"
+              cy="25"
+              r="13.5"
+              fill="#0F1215"
+              stroke="#36404A"
+              strokeWidth="1.2"
+            />
 
-            {/* Hat */}
-            {renderHat(char.hat, hx, hy, hr, tint)}
+            {/* Headband Brow Band */}
+            <path
+              d="M 35 21 Q 48 18 61 21"
+              fill="none"
+              stroke="#262E36"
+              strokeWidth="2.8"
+            />
 
-            {/* Eyewear */}
-            {renderEyewear(char.eyewear, hx, hy)}
-
-            {/* Eyes & Brows (Expressive) */}
-            {char.eyewear !== "domino_mask" && char.eyewear !== "eyepatch" && (
-              <g fill="#1F1A16" stroke="none">
-                <circle cx={hx - 5} cy={hy - 1} r="2" />
-                <circle cx={hx + 5} cy={hy - 1} r="2" />
+            {/* Sharp Glowing White Angular Samurai Eyes (Exact Match to Video Frame 00:00 & 00:09) */}
+            {pose === "recoil" ? (
+              <g fill="#FFFFFF">
+                <circle cx="44" cy="25" r="2.8" />
+                <circle cx="53" cy="25" r="2.8" />
+              </g>
+            ) : (
+              <g fill="#FFFFFF">
+                <polygon points="41,25 47,27 46,24" />
+                <polygon points="50,26 57,24 52,23" />
               </g>
             )}
 
-            {/* Eyebrows */}
-            <g stroke="#1F1A16" strokeWidth="2.2" fill="none">
-              {isAimed ? (
-                <g>
-                  <line x1={hx - 8} y1={hy - 6} x2={hx - 2} y2={hy - 4} />
-                  <line x1={hx + 2} y1={hy - 4} x2={hx + 8} y2={hy - 6} />
-                </g>
-              ) : pose === "recoil" ? (
-                <g>
-                  <path d={`M ${hx - 8} ${hy - 6} Q ${hx - 5} ${hy - 9} ${hx - 2} ${hy - 6}`} />
-                  <path d={`M ${hx + 2} ${hy - 6} Q ${hx + 5} ${hy - 9} ${hx + 8} ${hy - 6}`} />
-                </g>
-              ) : (
-                <g>
-                  <line x1={hx - 7} y1={hy - 5} x2={hx - 3} y2={hy - 5} />
-                  <line x1={hx + 3} y1={hy - 5} x2={hx + 7} y2={hy - 5} />
-                </g>
-              )}
-            </g>
-
-            {/* Mouth */}
-            <path
-              d={
-                pose === "recoil"
-                  ? `M ${hx - 4} ${hy + 8} Q ${hx} ${hy + 12} ${hx + 4} ${hy + 8}`
-                  : isAimed
-                  ? `M ${hx - 4} ${hy + 7} L ${hx + 4} ${hy + 7}`
-                  : `M ${hx - 5} ${hy + 6} Q ${hx} ${hy + 10} ${hx + 5} ${hy + 6}`
-              }
-              stroke="#1F1A16"
-              strokeWidth="2.2"
-              fill="none"
-            />
-
-            {/* Facial Hair */}
-            {renderFacialHair(char.facialHair, hx, hy)}
-
-            {/* Accessory (Bandaid, whistle, etc.) */}
-            {renderAccessory(char.accessory, hx, hy, hr, tint)}
+            {/* Subtle Character Identity Overlays */}
+            {char.hair !== "bald" && renderHair(char.hair, 48, 25, 13.5, tint)}
+            {char.hat !== "none" && renderHat(char.hat, 48, 23, 13.5, tint)}
+            {char.eyewear !== "none" && renderEyewear(char.eyewear, 48, 25)}
+            {char.facialHair !== "none" && renderFacialHair(char.facialHair, 48, 25)}
+            {char.accessory !== "none" && renderAccessory(char.accessory, 48, 25, 13.5, tint)}
           </g>
         </g>
       ) : null}
 
-      {/* 4. DEFEATED / DESTROYED STATE: Comic Knockout & Cross-Out */}
+      {/* 5. DEFEATED / DESTROYED STATE: Collapsed Black Stickman in Crimson Splatter (Video Frame 00:03) */}
       {isDead && (
         <g id="stickman-defeated">
-          {/* Dazed Stickman Silhouette */}
-          <circle
-            cx={hx}
-            cy={hy + 6}
-            r={hr}
-            fill="#F7EFE5"
-            stroke="#75685C"
-            strokeWidth="2.8"
-            strokeDasharray="4 2"
-          />
-          {/* Dazed Spiral/X Eyes */}
-          <line x1={hx - 8} y1={hy + 2} x2={hx - 2} y2={hy + 8} stroke="#75685C" strokeWidth="2.5" />
-          <line x1={hx - 2} y1={hy + 2} x2={hx - 8} y2={hy + 8} stroke="#75685C" strokeWidth="2.5" />
-          <line x1={hx + 2} y1={hy + 2} x2={hx + 8} y2={hy + 8} stroke="#75685C" strokeWidth="2.5" />
-          <line x1={hx + 8} y1={hy + 2} x2={hx + 2} y2={hy + 8} stroke="#75685C" strokeWidth="2.5" />
-          {/* Wavy Dazed Mouth */}
-          <path
-            d={`M ${hx - 6} ${hy + 13} Q ${hx - 3} ${hy + 10} ${hx} ${hy + 13} T ${hx + 6} ${hy + 13}`}
-            stroke="#75685C"
-            strokeWidth="2"
-            fill="none"
-          />
-          {/* Hair/Hat hint to retain character identity even in defeat */}
-          {char.hat !== "none"
-            ? renderHat(char.hat, hx, hy + 6, hr, tint)
-            : char.hair !== "bald"
-            ? renderHair(char.hair, hx, hy + 6, hr, tint)
-            : null}
+          {/* Crimson Ground Pool */}
+          <ellipse cx="50" cy="106" rx="30" ry="4.5" fill="#8B0000" opacity="0.85" />
+          <circle cx="26" cy="96" r="2.2" fill="#B91C1C" />
+          <circle cx="72" cy="98" r="1.8" fill="#B91C1C" />
 
-          {/* Slumped Body */}
-          <line x1="50" y1="48" x2="46" y2="80" stroke="#75685C" strokeWidth="2.8" strokeDasharray="4 2" />
-          <line x1="46" y1="80" x2="30" y2="106" stroke="#75685C" strokeWidth="2.8" strokeDasharray="4 2" />
-          <line x1="46" y1="80" x2="64" y2="108" stroke="#75685C" strokeWidth="2.8" strokeDasharray="4 2" />
+          {/* Collapsed Black Stickman Silhouette Lying on Ground (Matching Video Frame 00:03) */}
+          <circle cx="26" cy="86" r="10.5" fill="#0F1215" stroke="#2A323B" strokeWidth="1" />
+          {/* Torso & Limbs Slumped on Floor */}
+          <line x1="33" y1="92" x2="54" y2="102" stroke="#0F1215" strokeWidth="6.5" strokeLinecap="round" />
+          <line x1="54" y1="102" x2="76" y2="96" stroke="#0F1215" strokeWidth="5.5" strokeLinecap="round" />
+          <line x1="54" y1="102" x2="78" y2="104" stroke="#0F1215" strokeWidth="5.5" strokeLinecap="round" />
+          <line x1="38" y1="94" x2="48" y2="82" stroke="#0F1215" strokeWidth="4.5" strokeLinecap="round" />
 
-          {/* Comic Little Stars floating above head */}
-          <text x={hx - 14} y={hy - 4} fontSize="11" fill="#D9822B">✨</text>
-          <text x={hx + 8} y={hy - 6} fontSize="9" fill="#D9822B">⭐</text>
+          {/* Crimson Slash Line Across Defeated Panel */}
+          <line x1="18" y1="22" x2="82" y2="96" stroke="#B91C1C" strokeWidth="3.5" strokeLinecap="round" />
 
-          {/* Bold Red Comic Cross-Out Lines */}
-          <line x1="20" y1="16" x2="80" y2="108" stroke="#C0392B" strokeWidth="4.5" strokeLinecap="round" />
-          <line x1="80" y1="16" x2="20" y2="108" stroke="#C0392B" strokeWidth="4.5" strokeLinecap="round" />
-
-          {/* Hand-drawn comic K.O. Stamp */}
-          <rect
-            x="32"
-            y="94"
-            width="36"
-            height="16"
-            rx="4"
-            fill="#C0392B"
-            stroke="#FFFDF8"
-            strokeWidth="1.5"
-          />
-          <text
-            x="50"
-            y="106"
-            fontSize="10"
-            fontWeight="bold"
-            fontFamily="sans-serif"
-            fill="#FFFDF8"
-            textAnchor="middle"
-          >
-            K.O.
-          </text>
+          {/* Manga K.O. Stamp */}
+          <g transform="rotate(-5, 50, 52)">
+            <rect x="24" y="42" width="52" height="18" rx="2" fill="#0F1215" stroke="#B91C1C" strokeWidth="2" />
+            <text
+              x="50"
+              y="55"
+              fontSize="11"
+              fontWeight="900"
+              fontFamily="Bangers, Impact, sans-serif"
+              letterSpacing="1.5"
+              fill="#FAF4E6"
+              textAnchor="middle"
+            >
+              SLAIN • K.O.
+            </text>
+          </g>
         </g>
       )}
     </svg>
@@ -320,332 +301,229 @@ export const HandDrawnStickman: React.FC<HandDrawnStickmanProps> = ({
 };
 
 /**
- * Signature Flat Cap matching the user's uploaded reference image (media_1793946245613_892ac98f.png):
- * - Flat reddish-brown circular crown
- * - Vibrant glowing neon crimson/magenta brim
- * - Tilted slightly over the slitted glowing white eyes
+ * Ornate Black Lacquered Scabbard (Saya) with Gold Filigree Scrollwork
+ * Modeled directly after Frame 00:07-00:09 of gemini_generated_video_b4b6dfd9.mp4
  */
-function renderWarriorCap(hx: number, hy: number, hr: number, angle = -8) {
+function renderOrnateGoldScabbard(x1 = 42, y1 = 66, x2 = 14, y2 = 96) {
   return (
-    <g id="shadow-warrior-cap" transform={`rotate(${angle}, ${hx}, ${hy})`}>
-      {/* Crown base */}
-      <ellipse
-        cx={hx}
-        cy={hy - hr + 4}
-        rx={hr * 1.35}
-        ry={hr * 0.65}
-        fill="#A83232"
-        stroke="#161413"
-        strokeWidth="1.2"
-      />
-      {/* Glowing Neon Crimson Brim */}
-      <ellipse
-        cx={hx}
-        cy={hy - hr + 4}
-        rx={hr * 1.4}
-        ry={hr * 0.7}
-        fill="none"
-        stroke="#FF0054"
-        strokeWidth="2.6"
-      />
-      {/* Inner shadow crease */}
-      <path
-        d={`M ${hx - hr * 1.1} ${hy - hr + 4} Q ${hx} ${hy - hr + 8} ${hx + hr * 1.1} ${hy - hr + 4}`}
-        stroke="#7A1818"
-        strokeWidth="1.8"
-        fill="none"
-      />
-    </g>
-  );
-}
-
-/**
- * Hip Sheath / Scabbard (Saya) matching the user's reference image:
- * Attached at left hip, angled downwards to the back, charcoal body with crimson contour and gold collar.
- */
-function renderHipSheath(x1 = 43, y1 = 64, x2 = 18, y2 = 98) {
-  return (
-    <g id="hip-sheath-scabbard">
-      {/* Outer Glow / Contour */}
+    <g id="ornate-gold-filigree-scabbard">
+      {/* Black Lacquered Saya Body */}
       <line
         x1={x1}
         y1={y1}
         x2={x2}
         y2={y2}
-        stroke="#D90429"
-        strokeWidth="4.6"
+        stroke="#0F1215"
+        strokeWidth="5.2"
         strokeLinecap="round"
       />
-      {/* Dark Lacquered Body */}
+      {/* Gold Filigree Scrollwork Highlight along Scabbard */}
       <line
         x1={x1}
         y1={y1}
         x2={x2}
         y2={y2}
-        stroke="#141210"
-        strokeWidth="3.2"
+        stroke="#D4AF37"
+        strokeWidth="1.5"
+        strokeDasharray="4 2.5"
         strokeLinecap="round"
       />
-      {/* Koiguchi (Scabbard Collar / Mouth) */}
+      {/* Ornate Golden Koiguchi Collar */}
       <ellipse
         cx={x1}
         cy={y1}
-        rx="3.2"
+        rx="3.4"
         ry="2.2"
         fill="#D4AF37"
-        stroke="#FF0054"
+        stroke="#1C1917"
         strokeWidth="0.8"
       />
-      {/* Kojiri (Scabbard End Tip) */}
-      <circle cx={x2} cy={y2} r="2" fill="#D90429" />
     </g>
   );
 }
 
 /**
- * Renders the sleek Shadow Scythe / Katana Warrior silhouette
- * modeled directly after the user's reference drawing:
- * - Solid charcoal-black stylized body with crimson contours
- * - Menacing glowing white slitted eyes
- * - Signature flat cap with neon crimson brim
- * - Hip sheath / scabbard attached at waist
- * - Reaper Grim Scythe with curved red blade and white cutting edge
- * - Post-dash stance is 100% STILL and UNMOVING at the right end.
- *   ONLY the arm and weapon animate for the Chiburui blood flick and sheathing!
+ * Stage 5 / Armed State:
+ * Manga Samurai Stickman with Gleaming Silver Steel Katana, Diamond-Wrapped Hilt,
+ * Flowing Black Headband Tails, and 4-Point White Star Blade Glint
+ * Modeled directly after Frames 00:00, 00:01, 00:06, and 00:08 of gemini_generated_video_b4b6dfd9.mp4
  */
-function renderShadowScytheArmed(char: CharacterDefinition, pose: string, tint: string) {
+function renderMangaSamuraiArmed(char: CharacterDefinition, pose: string, tint: string) {
   const isDash = pose === "dash";
   const isChiburui = pose === "chiburui";
   const isSheathe = pose === "sheathe";
   const isSheathed = pose === "sheathed";
 
-  // Shared Reaper Blade Gradient
   const defs = (
     <defs>
-      <linearGradient id="scytheRedGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#800F2F" />
-        <stop offset="45%" stopColor="#D90429" />
-        <stop offset="100%" stopColor="#FF4D6D" />
+      <linearGradient id="silverKatanaBlade" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#94A3B8" />
+        <stop offset="50%" stopColor="#F8FAFC" />
+        <stop offset="100%" stopColor="#FFFFFF" />
       </linearGradient>
     </defs>
   );
 
-  // 1. DASH POSE: Ultra-fast low horizontal sliding dash
+  // 1. DASH / SLASH POSE (Frame 00:01 of video: Low lunging horizontal katana thrust)
   if (isDash) {
     return (
-      <g id="shadow-katana-dash">
+      <g id="manga-samurai-dash">
         {defs}
-        {/* Trailing speed blur lines */}
-        <line x1="-30" y1="65" x2="10" y2="65" stroke="#E63946" strokeWidth="2.5" strokeDasharray="6 4" opacity="0.8" />
-        <line x1="-25" y1="85" x2="20" y2="85" stroke="#E63946" strokeWidth="2" strokeDasharray="4 4" opacity="0.6" />
+        {/* Flowing Headband Tails Streaming Back */}
+        <path d="M 46 28 Q 22 22 4 28 Q 20 33 44 32 Z" fill="#0F1215" />
+        <path d="M 44 33 Q 20 34 8 42 Q 24 40 45 36 Z" fill="#0F1215" />
 
-        {/* Leaning Shadow Figure */}
-        <g transform="skewX(-25) translate(10, 0)">
-          {/* Hip Sheath trailing behind */}
-          {renderHipSheath(42, 68, 14, 88)}
+        {/* Low Lunging Hakama & Gi Silhouette */}
+        <path d="M 38 64 L 10 98 L 24 102 L 48 72 Z" fill="#0F1215" stroke="#2A323B" strokeWidth="1" />
+        <path d="M 48 64 L 64 100 L 78 98 L 58 64 Z" fill="#0F1215" stroke="#2A323B" strokeWidth="1" />
+        <path d="M 40 40 L 62 38 L 56 68 L 36 68 Z" fill="#0F1215" stroke="#2A323B" strokeWidth="1" />
 
-          {/* Shadow body leaning sharply forward */}
-          <path d="M 35 60 L 65 48 L 70 54 L 38 72 Z" fill="#141210" stroke="#800F2F" strokeWidth="1" />
-          {/* Trailing legs */}
-          <path d="M 35 68 L 10 95 L 15 98 L 42 74 Z" fill="#141210" stroke="#800F2F" strokeWidth="0.8" />
-          <path d="M 38 72 L 20 106 L 26 108 L 46 76 Z" fill="#141210" stroke="#800F2F" strokeWidth="0.8" />
+        {/* Ornate Scabbard at Hip */}
+        {renderOrnateGoldScabbard(38, 66, 8, 76)}
 
-          {/* Forward Head */}
-          <circle cx="72" cy="44" r="13" fill="#141210" stroke="#800F2F" strokeWidth="1" />
-          {/* Glowing White Eye */}
-          <path d="M 68 44 Q 73 45 78 41 Q 74 40 68 44 Z" fill="#FFFFFF" />
+        {/* Forward Head & Glowing White Eye */}
+        <circle cx="56" cy="27" r="13" fill="#0F1215" stroke="#36404A" strokeWidth="1.1" />
+        <polygon points="55,27 64,25 58,23" fill="#FFFFFF" />
 
-          {/* Flat Cap with Neon Brim */}
-          {renderWarriorCap(72, 44, 13, -15)}
-
-          {/* Extended Katana/Scythe Blade with curved razor edge */}
-          <rect x="58" y="47" width="4" height="10" rx="1.5" fill="#D4AF37" stroke="#161413" strokeWidth="1" />
-          <path
-            d="M 62 51 L 102 37 Q 108 34 114 30 L 108 36 L 62 53 Z"
-            fill="#FFFFFF"
-            stroke="#D90429"
-            strokeWidth="1.2"
-          />
-          <line x1="62" y1="53" x2="112" y2="31" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" />
-          <line x1="62" y1="53" x2="112" y2="31" stroke="#FF0054" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
-
-          {/* Character Identity accessories if present */}
-          {char.eyewear !== "none" && renderEyewear(char.eyewear, 72, 44)}
-        </g>
+        {/* Extended Arm & Horizontal Piercing Silver/Crimson Katana */}
+        <line x1="54" y1="45" x2="72" y2="45" stroke="#0F1215" strokeWidth="4.8" strokeLinecap="round" />
+        {/* Diamond-Wrapped Hilt & Gold Tsuba */}
+        <line x1="64" y1="45" x2="78" y2="45" stroke="#1C1917" strokeWidth="4.2" strokeLinecap="round" />
+        <line x1="66" y1="45" x2="76" y2="45" stroke="#CBD5E1" strokeWidth="2" strokeDasharray="1.8 1.8" />
+        <rect x="78" y="40" width="2.5" height="10" fill="#D4AF37" />
+        {/* Gleaming Silver Katana Blade */}
+        <path d="M 80 43 L 122 42 L 128 45 L 122 47 L 80 47 Z" fill="url(#silverKatanaBlade)" stroke="#E2E8F0" strokeWidth="0.8" />
       </g>
     );
   }
 
-  // 2. POST-DASH STANCE: ROCK-SOLID STILL BODY (No shaking, no jumping, no position shift!)
-  // Feet, Legs, Torso, Head, Eyes, Hat, and Hip Sheath remain 100% IDENTICAL across all right-side states.
+  // 2. ARMED CROUCH / CHIBURUI / NOTO SHEATHE STANCE (Frames 00:00, 00:06, 00:07, 00:08, 00:09)
   return (
-    <g id="shadow-scythe-armed-still-stance">
+    <g id="manga-samurai-armed-stance">
       {defs}
-      {/* Subtle crimson shadow on ground - Fixed */}
-      <ellipse cx="50" cy="112" rx="24" ry="4" fill="rgba(220, 20, 60, 0.35)" />
+      {/* Ground Shadow */}
+      <ellipse cx="50" cy="111" rx="26" ry="3.5" fill="rgba(15, 18, 21, 0.3)" />
 
-      {/* Hip Sheath (Saya / Scabbard) - Fixed on Left Hip */}
-      {renderHipSheath(43, 64, 18, 98)}
+      {/* Ornate Gold-Filigree Scabbard at Hip */}
+      {renderOrnateGoldScabbard(42, 66, 14, 96)}
 
-      {/* Left Leg - Planted firmly on ground */}
+      {/* Wide Samurai Hakama Trousers (Matching Frame 00:00 & 00:03) */}
       <path
-        d="M 40 70 Q 35 90 32 108 L 22 109 L 24 105 L 34 105 Q 38 88 43 70 Z"
-        fill="#141210"
-        stroke="#800F2F"
-        strokeWidth="0.8"
+        d="M 38 66 L 20 103 L 36 105 L 47 73 Z"
+        fill="#0F1215"
+        stroke="#2A323B"
+        strokeWidth="1.1"
       />
-      {/* Right Leg - Planted firmly on ground */}
       <path
-        d="M 47 70 Q 52 88 58 108 L 68 109 L 66 105 L 56 105 Q 50 88 47 70 Z"
-        fill="#141210"
-        stroke="#800F2F"
-        strokeWidth="0.8"
+        d="M 48 66 L 56 105 L 73 103 L 58 66 Z"
+        fill="#0F1215"
+        stroke="#2A323B"
+        strokeWidth="1.1"
       />
+      <line x1="38" y1="72" x2="28" y2="101" stroke="#36404A" strokeWidth="1" />
+      <line x1="54" y1="72" x2="63" y2="101" stroke="#36404A" strokeWidth="1" />
+      <path d="M 17 108 L 29 108 L 27 104 L 20 104 Z" fill="#0F1215" />
+      <path d="M 63 108 L 75 108 L 71 104 L 64 104 Z" fill="#0F1215" />
 
-      {/* Torso - Upright and still */}
-      <path
-        d="M 41 40 Q 36 54 39 72 L 48 72 Q 47 54 47 40 Z"
-        fill="#141210"
-        stroke="#800F2F"
-        strokeWidth="0.8"
-      />
+      {/* Sleeveless Samurai Gi Torso & Grey Obi Sash */}
+      <path d="M 37 40 L 58 40 L 56 67 L 39 67 Z" fill="#0F1215" stroke="#2A323B" strokeWidth="1.1" />
+      <polygon points="34,39 43,39 40,46" fill="#0F1215" stroke="#36404A" strokeWidth="1" />
+      <polygon points="52,39 61,39 56,46" fill="#0F1215" stroke="#36404A" strokeWidth="1" />
+      <line x1="42" y1="40" x2="49" y2="57" stroke="#3E4852" strokeWidth="1.5" />
+      <line x1="53" y1="40" x2="46" y2="52" stroke="#3E4852" strokeWidth="1.5" />
+      <rect x="38" y="61" width="19" height="6.5" rx="1" fill="#3B434C" stroke="#1C1917" strokeWidth="1" />
+      <line x1="39" y1="64" x2="56" y2="64" stroke={tint} strokeWidth="1.3" opacity="0.85" />
 
-      {/* Left Arm - Resting calmly and still on hip sheath */}
-      <path
-        d="M 41 42 Q 28 58 26 74 Q 28 80 32 76 Q 32 70 41 62"
-        fill="#141210"
-        stroke="#141210"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
+      {/* Left Arm on Scabbard */}
+      <path d="M 38 43 Q 29 54 36 65" fill="none" stroke="#0F1215" strokeWidth="4.2" strokeLinecap="round" />
 
-      {/* ======================================================== */}
-      {/* ONLY THE WEAPON & RIGHT ARM ANIMATE                     */}
-      {/* ======================================================== */}
-
-      {/* A. CHIBURUI: Blood-Flicking Swing */}
-      {isChiburui && (
-        <g id="weapon-chiburui-swing">
-          {/* Right Arm swinging weapon */}
-          <path d="M 47 42 Q 62 46 74 58 Q 70 62 62 55 L 46 48" fill="#141210" stroke="#800F2F" strokeWidth="1" />
-          {/* Scythe shaft during blood-flicking swing */}
-          <line x1="72" y1="56" x2="22" y2="88" stroke="#161413" strokeWidth="4.5" strokeLinecap="round" />
-          {/* Scythe curved blade swept down-across */}
+      {/* KATANA & RIGHT ARM BY PHASE */}
+      {isSheathe || isSheathed ? (
+        /* Frame 00:08-00:09: Katana Locked into Ornate Gold Scabbard with Golden Metal Sparks */
+        <g id="manga-katana-sheathed-lock">
+          <line x1="42" y1="66" x2="55" y2="53" stroke="#1C1917" strokeWidth="4.4" strokeLinecap="round" />
+          <line x1="44" y1="64" x2="54" y2="54" stroke="#CBD5E1" strokeWidth="2.2" strokeDasharray="1.8 1.8" />
+          <rect x="40" y="63" width="6" height="2.6" fill="#D4AF37" transform="rotate(45 42 65)" />
+          <path d="M 57 43 Q 65 50 53 55" fill="none" stroke="#0F1215" strokeWidth="4.2" strokeLinecap="round" />
+          {isSheathe && (
+            <g id="golden-sheathe-sparks" transform="translate(42, 65)">
+              <line x1="-2" y1="-3" x2="-9" y2="-10" stroke="#F59E0B" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="3" y1="-4" x2="9" y2="-12" stroke="#FDE047" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="-4" y1="2" x2="-11" y2="6" stroke="#F59E0B" strokeWidth="1.4" strokeLinecap="round" />
+              <circle cx="0" cy="0" r="2.5" fill="#FEF08A" />
+            </g>
+          )}
+        </g>
+      ) : isChiburui ? (
+        /* Frame 00:06: Close-Up Chiburui Whipping Blood Arc Off Spotless Silver Blade */
+        <g id="manga-katana-chiburui">
+          <path d="M 56 43 Q 42 52 32 58" fill="none" stroke="#0F1215" strokeWidth="4.2" strokeLinecap="round" />
+          {/* Diamond-Wrapped Hilt & Gold Tsuba */}
+          <line x1="36" y1="60" x2="26" y2="53" stroke="#1C1917" strokeWidth="4.2" strokeLinecap="round" />
+          <line x1="35" y1="59" x2="27" y2="54" stroke="#CBD5E1" strokeWidth="2" strokeDasharray="1.8 1.8" />
+          <rect x="24" y="49" width="2.5" height="8" fill="#D4AF37" transform="rotate(35 25 53)" />
+          {/* Gleaming Silver Katana Blade Pointed Forward-Left */}
           <path
-            d="M 22 88 L 18 96 L 24 99 L 38 101 L 52 97 L 62 86 Q 40 94 22 88 Z"
-            fill="url(#scytheRedGradient)"
-            stroke="#161413"
-            strokeWidth="2.2"
-          />
-          <path d="M 62 86 Q 40 94 22 88" stroke="#FF0054" strokeWidth="2.4" fill="none" />
-          <path d="M 54 89 Q 38 95 24 90" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" fill="none" />
-          {/* SWIFT MOTION BLUR ARC (Blade Swing) */}
-          <path
-            d="M 72 30 Q 56 60 22 88"
-            stroke="#FF0054"
-            strokeWidth="3.2"
-            strokeDasharray="8 4"
-            strokeLinecap="round"
-            fill="none"
-            opacity="0.85"
-          />
-          <path
-            d="M 74 32 Q 58 62 24 90"
+            d="M 25 51 L -6 31 L -10 27 L -4 28 L 27 48 Z"
+            fill="url(#silverKatanaBlade)"
             stroke="#FFFFFF"
-            strokeWidth="1.6"
-            strokeDasharray="6 6"
-            strokeLinecap="round"
-            fill="none"
-            opacity="0.9"
+            strokeWidth="0.9"
           />
-          {/* BLOOD DROPLETS FLICKING / FLYING OFF THE BLADE */}
-          <g id="blood-flick-droplets">
-            <circle cx="12" cy="94" r="3.2" fill="#D90429" />
-            <circle cx="6" cy="100" r="2.6" fill="#FF0054" />
-            <circle cx="2" cy="107" r="2" fill="#800F2F" />
-            <circle cx="16" cy="103" r="2.2" fill="#D90429" />
-            <ellipse cx="14" cy="113" rx="10" ry="2.2" fill="#D90429" opacity="0.8" />
+          {/* 4-Point White Star Glint on Silver Blade (Matching Frame 00:06) */}
+          <g transform="translate(8, 39)">
+            <polygon points="0,-7 1.5,-1.5 7,0 1.5,1.5 0,7 -1.5,1.5 -7,0 -1.5,-1.5" fill="#FFFFFF" />
+          </g>
+          {/* Flinging Crimson Droplets Arc */}
+          <circle cx="-8" cy="44" r="2.2" fill="#DC2626" />
+          <circle cx="-14" cy="52" r="1.8" fill="#B91C1C" />
+          <circle cx="-4" cy="56" r="1.5" fill="#DC2626" />
+        </g>
+      ) : (
+        /* Frame 00:00: Iconic Low-Stance Silver Katana Held Across with 4-Point White Star Glint */
+        <g id="manga-katana-drawn-glint">
+          <path d="M 56 43 Q 46 53 36 55" fill="none" stroke="#0F1215" strokeWidth="4.2" strokeLinecap="round" />
+          {/* Diamond-Wrapped Hilt (Tsuka-ito) */}
+          <line x1="26" y1="50" x2="39" y2="56" stroke="#1C1917" strokeWidth="4.4" strokeLinecap="round" />
+          <line x1="28" y1="51" x2="38" y2="55" stroke="#CBD5E1" strokeWidth="2" strokeDasharray="1.8 1.8" />
+          {/* Golden Tsuba Guard */}
+          <rect x="38" y="51" width="2.4" height="9" fill="#D4AF37" transform="rotate(22 39 55)" />
+          {/* Curved Gleaming Silver Katana Blade */}
+          <path
+            d="M 40 54 Q 64 64 88 68 L 93 67 Q 66 60 41 51 Z"
+            fill="url(#silverKatanaBlade)"
+            stroke="#FFFFFF"
+            strokeWidth="0.9"
+          />
+          {/* 4-Point Bright White Star Glint on Blade Tip (Exact Match to Video Frame 00:00) */}
+          <g transform="translate(76, 65)">
+            <polygon points="0,-8 1.6,-1.6 8,0 1.6,1.6 0,8 -1.6,1.6 -8,0 -1.6,-1.6" fill="#FFFFFF" />
+            <circle cx="0" cy="0" r="2" fill="#FFFFFF" />
           </g>
         </g>
       )}
 
-      {/* B. SHEATHE: Guiding weapon into the hip sheath */}
-      {isSheathe && (
-        <g id="weapon-sheathe-guide">
-          <line x1="52" y1="46" x2="44" y2="60" stroke="#161413" strokeWidth="3.8" strokeLinecap="round" />
-          <circle cx="52" cy="46" r="3.2" fill="#141210" stroke="#D90429" strokeWidth="0.8" />
-          {/* Golden-white metallic gleam spark at sheath entrance */}
-          <g transform="translate(43, 61)">
-            <polygon points="0,-7 2,-2 7,0 2,2 0,7 -2,2 -7,0 -2,-2" fill="#FFFFFF" />
-            <circle cx="0" cy="0" r="2.2" fill="#D4AF37" />
-          </g>
+      {/* Pitch-Black Samurai Head, Flowing Headband Tails & Glowing White Angular Eyes */}
+      <g id="manga-samurai-head">
+        {/* Flowing Headband Tails */}
+        <path d="M 36 22 Q 18 16 6 21 Q 18 26 35 25 Z" fill="#0F1215" stroke="#2A323B" strokeWidth="0.9" />
+        <path d="M 35 26 Q 19 27 10 35 Q 22 34 36 29 Z" fill="#0F1215" stroke="#2A323B" strokeWidth="0.9" />
+
+        <circle cx="48" cy="25" r="13.5" fill="#0F1215" stroke="#36404A" strokeWidth="1.2" />
+        <path d="M 35 21 Q 48 18 61 21" fill="none" stroke="#262E36" strokeWidth="2.8" />
+
+        {/* Glowing White Angular Samurai Eyes */}
+        <g fill="#FFFFFF">
+          <polygon points="41,25 47,27 46,24" />
+          <polygon points="50,26 57,24 52,23" />
         </g>
-      )}
 
-      {/* C. SHEATHED: Weapon locked into hip scabbard */}
-      {isSheathed && (
-        <g id="sheathed-hilt-lock">
-          <line x1="43" y1="64" x2="52" y2="52" stroke="#161413" strokeWidth="4.2" strokeLinecap="round" />
-          <ellipse cx="43" cy="64" rx="3.5" ry="2.2" fill="#D4AF37" stroke="#FF0054" strokeWidth="1" />
-          <line x1="40" y1="63" x2="46" y2="65" stroke="#FFFFFF" strokeWidth="1" />
-        </g>
-      )}
-
-      {/* D. POST-DASH STILL HOLD (Bloody Scythe held at side/back before Chiburui) */}
-      {!isChiburui && !isSheathe && !isSheathed && (
-        <g id="weapon-bloody-hold">
-          {/* Right arm gripping scythe */}
-          <path
-            d="M 47 42 Q 54 48 58 52 Q 62 56 60 60 Q 56 60 52 54 L 46 48"
-            fill="#141210"
-            stroke="#141210"
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-          {/* Scythe shaft */}
-          <line
-            x1="28"
-            y1="98"
-            x2="72"
-            y2="22"
-            stroke="#161413"
-            strokeWidth="4.8"
-            strokeLinecap="round"
-          />
-          <polygon points="70,24 75,18 78,22 73,28" fill="#161413" />
-          {/* Scythe blade */}
-          <path
-            d="M 72 22 L 75 15 L 68 13 L 59 6 L 53 8 L 42 5 L 35 8 L 24 13 L 12 26 Q 42 15 72 22 Z"
-            fill="url(#scytheRedGradient)"
-            stroke="#161413"
-            strokeWidth="2.4"
-            strokeLinejoin="round"
-          />
-          <path d="M 12 26 Q 42 15 72 22" stroke="#FF0054" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-          <path d="M 20 22 Q 44 13 65 17" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" strokeOpacity="0.92" fill="none" />
-          {/* Blood droplets on blade tip before Chiburui */}
-          <circle cx="12" cy="28" r="2.8" fill="#D90429" />
-          <circle cx="10" cy="34" r="2.2" fill="#FF0054" />
-          <circle cx="8" cy="40" r="1.6" fill="#800F2F" />
-        </g>
-      )}
-
-      {/* Head - Rock solid and still at (43, 28) */}
-      <circle cx="43" cy="28" r="14.5" fill="#141210" stroke="#800F2F" strokeWidth="1" />
-
-      {/* Slanted Glowing White Eyes */}
-      <g fill="#FFFFFF" stroke="none">
-        <path d="M 35 29 Q 39 31 43 27 Q 39 26 35 29 Z" />
-        <path d="M 45 27 Q 49 28 53 25 Q 49 24 45 27 Z" />
+        {/* Character Identity Traits */}
+        {char.hair !== "bald" && renderHair(char.hair, 48, 25, 13.5, tint)}
+        {char.hat !== "none" && renderHat(char.hat, 48, 23, 13.5, tint)}
+        {char.eyewear !== "none" && renderEyewear(char.eyewear, 48, 25)}
+        {char.facialHair !== "none" && renderFacialHair(char.facialHair, 48, 25)}
+        {char.accessory !== "none" && renderAccessory(char.accessory, 48, 25, 13.5, tint)}
       </g>
-
-      {/* Signature Flat Cap with Neon Crimson Brim */}
-      {renderWarriorCap(43, 28, 14.5, -8)}
-
-      {/* Character Identity Traits */}
-      {char.eyewear !== "none" && renderEyewear(char.eyewear, 43, 28)}
-      {char.facialHair !== "none" && renderFacialHair(char.facialHair, 43, 28)}
-      {char.accessory !== "none" && renderAccessory(char.accessory, 43, 28, 14.5, tint)}
     </g>
   );
 }
@@ -1008,64 +886,6 @@ function renderAccessory(acc: string, x: number, y: number, r: number, tint: str
         <g id="acc-whistle" stroke="#1F1A16" strokeWidth="1.5">
           <line x1="50" y1="44" x2="48" y2="54" />
           <rect x="46" y="54" width="4" height="6" rx="1" fill="#D4AF37" />
-        </g>
-      );
-    default:
-      return null;
-  }
-}
-
-function renderCartoonWeapon(weapon: string, wx: number, wy: number, tint: string) {
-  switch (weapon) {
-    case "popgun":
-      return (
-        <g id="weapon-popgun" stroke="#1F1A16" strokeWidth="2.2">
-          {/* Wooden stock */}
-          <path d={`M ${wx - 2} ${wy + 4} L ${wx + 6} ${wy} L ${wx + 6} ${wy - 4} L ${wx - 2} ${wy - 1} Z`} fill="#8B5A2B" />
-          {/* Barrel */}
-          <line x1={wx + 6} y1={wy - 2} x2={wx + 20} y2={wy - 2} stroke="#555" strokeWidth="3" strokeLinecap="round" />
-          {/* Cork tether */}
-          <path d={`M ${wx + 16} ${wy - 2} Q ${wx + 18} ${wy + 6} ${wx + 22} ${wy + 3}`} stroke="#B45309" strokeWidth="1.2" fill="none" />
-          <rect x={wx + 20} y={wy + 2} width="4" height="3" fill="#D4A373" />
-        </g>
-      );
-    case "peashooter":
-      return (
-        <g id="weapon-peashooter" stroke="#1F1A16" strokeWidth="2.2">
-          {/* Blowpipe */}
-          <line x1={wx - 2} y1={wy} x2={wx + 22} y2={wy - 2} stroke="#4A8B6F" strokeWidth="3.2" />
-          {/* Little green pea */}
-          <circle cx={wx + 26} cy={wy - 2} r="2.5" fill="#22C55E" stroke="#1F1A16" strokeWidth="1.5" />
-        </g>
-      );
-    case "slingshot":
-      return (
-        <g id="weapon-slingshot" stroke="#1F1A16" strokeWidth="2.2">
-          {/* Y-frame wooden fork */}
-          <path d={`M ${wx} ${wy + 6} L ${wx + 6} ${wy} L ${wx + 12} ${wy - 6}`} stroke="#8B5A2B" strokeWidth="3" />
-          <path d={`M ${wx + 6} ${wy} L ${wx + 14} ${wy + 4}`} stroke="#8B5A2B" strokeWidth="3" />
-          {/* Rubber band pulled */}
-          <line x1={wx + 12} y1={wy - 6} x2={wx - 2} y2={wy - 1} stroke="#E06B52" strokeWidth="1.8" />
-          <line x1={wx + 14} y1={wy + 4} x2={wx - 2} y2={wy - 1} stroke="#E06B52" strokeWidth="1.8" />
-        </g>
-      );
-    case "blunderbuss":
-      return (
-        <g id="weapon-blunderbuss" stroke="#1F1A16" strokeWidth="2.2">
-          {/* Stock */}
-          <path d={`M ${wx - 4} ${wy + 4} L ${wx + 8} ${wy} L ${wx + 8} ${wy - 4} L ${wx - 4} ${wy - 1} Z`} fill="#8B5A2B" />
-          {/* Flared bell muzzle */}
-          <polygon points={`${wx + 8},${wy - 3} ${wx + 18},${wy - 6} ${wx + 18},${wy + 3} ${wx + 8},${wy}`} fill="#D4AF37" />
-        </g>
-      );
-    case "raygun":
-      return (
-        <g id="weapon-raygun" stroke="#1F1A16" strokeWidth="2.2" fill={tint}>
-          {/* Sleek retro sci-fi body */}
-          <ellipse cx={wx + 8} cy={wy - 1} rx="8" ry="4.5" />
-          {/* Concentric transmitter rings */}
-          <circle cx={wx + 17} cy={wy - 1} r="3" fill="none" strokeWidth="1.8" />
-          <circle cx={wx + 21} cy={wy - 1} r="4.5" fill="none" strokeWidth="1.8" />
         </g>
       );
     default:

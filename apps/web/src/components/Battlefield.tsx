@@ -25,15 +25,15 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
 
   return (
     <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 py-2">
-      {/* Outer Gameboard Frame */}
-      <div className="cartoon-card-lg bg-[#FFFDF7] overflow-hidden">
+      {/* Outer Graphic-Novel Comic Page Grid Frame (Warm Vintage Newsprint) */}
+      <div className="cartoon-card-lg bg-[#FAF4E6] overflow-hidden">
         {/* Scrollable Container for 5-10 players */}
         <div className="overflow-x-auto w-full">
           {/* Unified CSS Grid Table */}
           <div
             className="grid min-w-full"
             style={{
-              gridTemplateColumns: `80px repeat(${numPlayers}, minmax(130px, 1fr))`
+              gridTemplateColumns: `84px repeat(${numPlayers}, minmax(134px, 1fr))`
             }}
           >
             {/* ======================================================== */}
@@ -41,12 +41,12 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
             {/* ======================================================== */}
             
             {/* Pinned Left Corner Header */}
-            <div className="sticky left-0 z-20 bg-cozy-parchment border-b-2 border-r-2 border-cozy-brown/30 flex flex-col items-center justify-center p-2 text-center shadow-xs h-[72px] min-h-[72px] max-h-[72px]">
-              <span className="font-fredoka font-bold text-xs text-cozy-brown-dark uppercase tracking-wider">
+            <div className="sticky left-0 z-20 bg-[#1C1917] border-b-4 border-r-4 border-[#1C1917] flex flex-col items-center justify-center p-2 text-center h-[74px] min-h-[74px] max-h-[74px]">
+              <span className="font-bangers text-sm text-[#E5C467] uppercase tracking-widest">
                 Folio
               </span>
-              <span className="text-[10px] font-fredoka text-cozy-brown">
-                Row
+              <span className="text-[10px] font-mono font-bold text-[#FAF4E6]/80 uppercase">
+                Panel
               </span>
             </div>
 
@@ -59,40 +59,40 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
                 <div
                   key={player.playerId}
                   className={`
-                    border-b-2 border-r border-cozy-cell-border px-2 py-1.5 flex flex-col items-center justify-center text-center transition-colors duration-150 h-[72px] min-h-[72px] max-h-[72px]
+                    border-b-4 border-r-2 border-[#1C1917] px-2 py-1.5 flex flex-col items-center justify-center text-center transition-colors duration-150 h-[74px] min-h-[74px] max-h-[74px]
                     ${isEliminated
-                      ? "bg-[#EDE4D5]/40 text-cozy-brown/40"
+                      ? "bg-[#D8CFC0] text-[#1C1917]/45"
                       : isCurrentTurn
-                      ? "bg-cozy-amber-light border-b-cozy-amber"
-                      : "bg-[#FAF7F0] text-cozy-brown-dark"
+                      ? "bg-[#E5C467] text-[#1C1917]"
+                      : "bg-[#EFE6D0] text-[#1C1917]"
                     }
                   `}
                 >
                   <div className="flex items-center justify-center gap-1.5 mb-0.5">
                     <span
                       className={`
-                        font-fredoka text-xs font-bold px-2 py-0.5 rounded-full
+                        font-bangers tracking-wider text-xs px-2 py-0.5 -skew-x-6 border border-[#1C1917]
                         ${isCurrentTurn
-                          ? "bg-cozy-amber text-cozy-brown-dark"
-                          : "bg-cozy-parchment text-cozy-brown-dark"
+                          ? "bg-[#1C1917] text-[#E5C467]"
+                          : "bg-[#C85A48] text-[#FAF4E6]"
                         }
                       `}
                     >
                       {player.position}
                     </span>
                     {isCurrentTurn && !isEliminated && (
-                      <span className="text-xs text-cozy-amber-dark font-bold" title="Current Turn">
+                      <span className="text-xs font-bold" title="Current Turn">
                         ⭐
                       </span>
                     )}
                     {isEliminated && (
-                      <span className="text-[10px] font-fredoka font-semibold text-cozy-brown/50 bg-[#E8D8C3]/50 px-1.5 rounded">
+                      <span className="text-[10px] font-bangers tracking-wider text-[#FAF4E6] bg-[#1C1917] px-1.5">
                         Out
                       </span>
                     )}
                     {!isEliminated && player.connected === false && (
                       <span
-                        className="text-[10px] font-fredoka font-semibold text-amber-800 bg-amber-200/80 px-1.5 rounded"
+                        className="text-[10px] font-bangers tracking-wider text-[#1C1917] bg-[#E5C467] px-1.5"
                         title="Player disconnected"
                       >
                         Offline
@@ -101,19 +101,17 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
                   </div>
 
                   <div
-                    className={`font-fredoka text-xs sm:text-sm font-semibold truncate w-full px-1 text-center ${
+                    className={`font-bangers tracking-wider text-sm sm:text-base truncate w-full px-1 text-center uppercase ${
                       isEliminated
-                        ? "text-cozy-brown/40 line-through"
-                        : isCurrentTurn
-                        ? "text-cozy-brown-dark font-bold"
-                        : "text-cozy-brown-dark"
+                        ? "text-[#1C1917]/45 line-through"
+                        : "text-[#1C1917]"
                     }`}
                     title={player.username}
                   >
                     {player.username}
                   </div>
 
-                  <div className="text-[10px] font-fredoka text-cozy-brown/70 mt-0.5">
+                  <div className="text-[10px] font-mono font-bold mt-0.5 text-[#1C1917]/75">
                     {player.kills} {player.kills === 1 ? "poof" : "poofs"}
                   </div>
                 </div>
@@ -131,14 +129,14 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
                   {/* Pinned Left Header for Row Value */}
                   <div
                     className={`
-                      sticky left-0 z-10 bg-cozy-parchment border-r-2 border-cozy-brown/30 flex flex-col items-center justify-center p-2 text-center shadow-xs h-[140px] min-h-[140px] max-h-[140px]
-                      ${!isLastRow ? "border-b border-cozy-brown/20" : ""}
+                      sticky left-0 z-10 bg-[#1C1917] border-r-4 border-[#1C1917] flex flex-col items-center justify-center p-2 text-center h-[144px] min-h-[144px] max-h-[144px]
+                      ${!isLastRow ? "border-b-2 border-[#FAF4E6]/20" : ""}
                     `}
                   >
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-cozy-white/80 border border-cozy-brown/30 font-fredoka font-bold text-xs text-cozy-brown-dark">
+                    <span className="inline-flex items-center justify-center w-8 h-8 bg-[#E5C467] border-2 border-[#FAF4E6] shadow-[2px_2px_0_#C85A48] font-bangers text-base text-[#1C1917] -rotate-3">
                       {val}
                     </span>
-                    <span className="text-[10px] font-fredoka font-medium text-cozy-brown/70 mt-1 uppercase">
+                    <span className="text-[10px] font-bangers tracking-wider text-[#FAF4E6] mt-1.5 uppercase">
                       Cell #{val}
                     </span>
                   </div>
@@ -160,13 +158,13 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
                       <div
                         key={player.playerId + "_" + val}
                         className={`
-                          border-r border-cozy-cell-border h-[140px] min-h-[140px] max-h-[140px] flex items-center justify-center transition-colors duration-150
-                          ${!isLastRow ? "border-b border-cozy-cell-border" : ""}
+                          border-r-2 border-[#1C1917] h-[144px] min-h-[144px] max-h-[144px] flex items-center justify-center transition-colors duration-150
+                          ${!isLastRow ? "border-b-2 border-[#1C1917]" : ""}
                           ${isEliminated
-                            ? "bg-[#EDE4D5]/20"
+                            ? "bg-[#DFD7C8]/60"
                             : isCurrentTurn
-                            ? "bg-cozy-amber-light/30"
-                            : "bg-[#FDFBF7]"
+                            ? "bg-[#F3E8C6]/65"
+                            : "bg-[#FAF4E6]"
                           }
                         `}
                       >

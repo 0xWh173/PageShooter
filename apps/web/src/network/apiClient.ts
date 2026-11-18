@@ -3,7 +3,9 @@ import type {
   PublicRoomState,
   UserActiveRoomResolution,
   RoomParticipant,
-  MatchState
+  MatchState,
+  MatchEvent,
+  CellValue
 } from "@pageshooter/shared";
 
 export class ApiError extends Error {
@@ -23,6 +25,16 @@ export function getApiBaseUrl(): string {
   const metaEnv = (import.meta as unknown as { env?: Record<string, string | undefined> })?.env;
   if (metaEnv?.VITE_API_URL) {
     return metaEnv.VITE_API_URL;
+  }
+  // When deployed on Vercel or any non-localhost domain without explicit VITE_API_URL,
+  // use same-origin (/api/* routed by vercel.json to /api/index.js)
+  if (
+    typeof window !== "undefined" &&
+    window.location &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1"
+  ) {
+    return window.location.origin;
   }
   // Default to local Fastify server port 4000
   return "http://localhost:4000";
@@ -216,6 +228,45 @@ export const apiClient = {
       currentCommitment: { turnNumber: number; commitmentHash: string };
     }>(`/api/rooms/${encodeURIComponent(roomCode)}/start`, {
       method: "POST"
+    });
+  },
+
+  async rollTurn(
+    roomCode: string,
+    expectedStateVersion?: number,
+    commandId?: string
+  ): Promise<{
+    matchState: MatchState;
+    rollOutcome: CellValue;
+    pageNumber: number;
+    seed: string;
+    nextCommitment: { turnNumber: number; commitmentHash: string } | null;
+    events: MatchEvent[];
+  }> {
+    return request(`/api/rooms/${encodeURIComponent(roomCode)}/roll`, {
+      method: "POST",
+      body: JSON.stringify({ expectedStateVersion, commandId })
+    });
+  },
+
+  async shootTurn(
+    roomCode: string,
+    targetUserId: string,
+    targetCellValue: CellValue,
+    expectedStateVersion?: number,
+    commandId?: string
+  ): Promise<{
+    matchState: MatchState;
+    events: MatchEvent[];
+  }> {
+    return request(`/api/rooms/${encodeURIComponent(roomCode)}/shoot`, {
+      method: "POST",
+      body: JSON.stringify({
+        targetUserId,
+        targetCellValue,
+        expectedStateVersion,
+        commandId
+      })
     });
   }
 };

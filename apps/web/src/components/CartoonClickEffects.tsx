@@ -6,17 +6,19 @@ interface ClickBurst {
   x: number;
   y: number;
   color: string;
+  word: string;
 }
 
-const BURST_COLORS = ["#FFB703", "#21D4FD", "#FF4D6D", "#38B000", "#FFFDF7"];
+const BURST_COLORS = ["#E5C467", "#688B9A", "#C85A48", "#FAF4E6"];
+const COMIC_WORDS = ["POW!", "WHAM!", "BAM!", "ZAP!"];
 const SPARK_ANGLES = [0, 60, 120, 180, 240, 300];
 
 let nextBurstId = 1;
 
 /**
- * Global Cartoon Click Effect Overlay:
- * Spawns an ephemeral comic starburst & radial sparks whenever the user clicks
- * any interactive button, role="button", or [data-cartoon-click] target.
+ * Targeted Comic-Book Onomatopoeia Click Effect Overlay:
+ * Triggers strictly on elements marked with [data-cartoon-click] (specifically
+ * the Local Pass & Play and Online Multiplayer mode selection buttons).
  */
 export const CartoonClickEffects: React.FC = () => {
   const [bursts, setBursts] = useState<ClickBurst[]>([]);
@@ -33,7 +35,7 @@ export const CartoonClickEffects: React.FC = () => {
       if (!target) return;
 
       const interactive = target.closest(
-        'button:not(:disabled), [role="button"], [data-cartoon-click]'
+        "[data-cartoon-click]:not(:disabled)"
       );
       if (!interactive) return;
 
@@ -43,11 +45,15 @@ export const CartoonClickEffects: React.FC = () => {
 
       const id = nextBurstId++;
       const color = BURST_COLORS[id % BURST_COLORS.length];
-      setBursts((prev) => [...prev.slice(-6), { id, x: event.clientX, y: event.clientY, color }]);
+      const word = COMIC_WORDS[id % COMIC_WORDS.length];
+      setBursts((prev) => [
+        ...prev.slice(-6),
+        { id, x: event.clientX, y: event.clientY, color, word }
+      ]);
 
       setTimeout(() => {
         setBursts((prev) => prev.filter((b) => b.id !== id));
-      }, 480);
+      }, 520);
     };
 
     document.addEventListener("pointerdown", handlePointerDown, { passive: true });
@@ -70,24 +76,47 @@ export const CartoonClickEffects: React.FC = () => {
           style={{ left: burst.x, top: burst.y }}
           className="absolute"
         >
-          {/* Comic Starburst Outline */}
+          {/* Jagged 16-Point Comic Action Starburst + Onomatopoeia Text */}
           <svg
-            width="54"
-            height="54"
-            viewBox="0 0 60 60"
-            className="animate-cartoon-burst"
+            width="86"
+            height="86"
+            viewBox="0 0 86 86"
+            className="animate-cartoon-burst overflow-visible"
           >
+            {/* Solid Black Offset Comic Ink Shadow */}
             <polygon
-              points="30,2 37,20 56,16 42,30 56,44 37,40 30,58 23,40 4,44 18,30 4,16 23,20"
-              fill={burst.color}
-              fillOpacity="0.32"
-              stroke="#1E1410"
-              strokeWidth="3"
-              strokeLinejoin="round"
+              points="43,4 51,21 68,10 61,28 81,27 66,41 83,53 63,56 71,74 52,66 47,83 38,67 21,77 26,58 7,60 21,45 4,33 24,30 16,12 35,21"
+              fill="#0A0A0A"
+              transform="translate(3, 3)"
             />
+            {/* Main Vivid Comic Starburst */}
+            <polygon
+              points="43,4 51,21 68,10 61,28 81,27 66,41 83,53 63,56 71,74 52,66 47,83 38,67 21,77 26,58 7,60 21,45 4,33 24,30 16,12 35,21"
+              fill={burst.color}
+              stroke="#0A0A0A"
+              strokeWidth="3.2"
+              strokeLinejoin="miter"
+            />
+            {/* Comic Onomatopoeia Word ("POW!", "WHAM!", "SLASH!") */}
+            <text
+              x="43"
+              y="49"
+              textAnchor="middle"
+              fill="#FFFDF5"
+              stroke="#0A0A0A"
+              strokeWidth="3.5"
+              paintOrder="stroke"
+              fontSize="16"
+              fontWeight="900"
+              fontFamily="Bangers, Impact, Fredoka, sans-serif"
+              letterSpacing="1"
+              transform="rotate(-8, 43, 43)"
+            >
+              {burst.word}
+            </text>
           </svg>
 
-          {/* Radial Comic Sparks */}
+          {/* Radial Comic Ink Speed Sparks */}
           {SPARK_ANGLES.map((angle, idx) => (
             <span
               key={angle}
@@ -97,7 +126,7 @@ export const CartoonClickEffects: React.FC = () => {
                   backgroundColor: BURST_COLORS[(burst.id + idx) % BURST_COLORS.length]
                 } as React.CSSProperties
               }
-              className="animate-cartoon-spark absolute left-0 top-0 w-2.5 h-2.5 rounded-full border-2 border-[#1E1410]"
+              className="animate-cartoon-spark absolute left-0 top-0 w-2 h-3.5 border-2 border-[#0A0A0A]"
             />
           ))}
         </div>

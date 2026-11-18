@@ -89,136 +89,149 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-cozy-ivory text-cozy-brown-dark flex flex-col items-center justify-center p-3 sm:p-6 select-none">
-      <div className="cartoon-card-lg max-w-2xl w-full bg-[#FFFDF7] p-5 sm:p-9 relative">
-        {/* Header */}
-        <div className="text-center mb-5">
-          <div className="text-3xl sm:text-4xl mb-1">📖 ✏️ ⭐</div>
-          <h1 className="font-fredoka text-2xl sm:text-4xl font-bold text-cozy-brown-dark tracking-tight">
-            PageShooter
-          </h1>
-          <p className="text-xs sm:text-sm font-fredoka text-cozy-brown/80 mt-1">
-            Hand-Drawn Illustrated Folio Game for 5 to 10 players
-          </p>
-        </div>
-
-        {/* Saved Match Notice (If Active Match Exists in IndexedDB) */}
-        {savedMatch && savedMatch.phase === "ACTIVE" && (
-          <div className="mb-5 p-3.5 rounded-2xl bg-cozy-amber-light border border-cozy-amber/70 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
-            <div className="text-left">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🔖</span>
-                <span className="font-fredoka font-bold text-cozy-brown-dark text-sm sm:text-base">
-                  Active Game Discovered
-                </span>
-              </div>
-              <p className="text-xs font-fredoka text-cozy-brown mt-0.5">
-                Turn {savedMatch.turn.turnNumber} • {savedMatch.players.length} players
-              </p>
-            </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={onResumeSavedMatch}
-                className="flex-1 sm:flex-none px-4 py-2 bg-cozy-amber hover:bg-cozy-amber-dark text-cozy-brown-dark font-fredoka font-bold text-xs sm:text-sm rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer"
-              >
-                Resume Game ➔
-              </button>
-              <button
-                type="button"
-                onClick={onDiscardSavedMatch}
-                className="flex-1 sm:flex-none px-3 py-2 bg-cozy-white hover:bg-red-50 text-red-600 border border-red-200 font-fredoka font-semibold text-xs sm:text-sm rounded-xl transition-all active:scale-95 cursor-pointer"
-              >
-                Discard
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Setup Form */}
-        <form onSubmit={handleStart} className="space-y-5">
-          {/* Player Count Selector */}
+    <div className="min-h-screen comic-split-bg text-[#1C1917] flex flex-col items-center justify-center p-3 sm:p-6 select-none">
+      <div className="cartoon-card-lg max-w-2xl w-full bg-[#FAF4E6] overflow-hidden relative">
+        {/* Warm Charcoal Graphic-Novel Panel Header (Reference 3 Style) */}
+        <div className="bg-[#1C1917] text-[#FAF4E6] px-5 py-4 border-b-4 border-[#1C1917] flex items-center justify-between">
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-fredoka font-bold uppercase tracking-wider text-cozy-brown">
-                Number of Players (5 – 10)
-              </label>
-              <span className="text-[11px] font-fredoka text-cozy-brown/70">
-                All seats share equal folio columns
-              </span>
+            <div className="inline-block bg-[#C85A48] text-[#FAF4E6] border-2 border-[#FAF4E6] px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest mb-1 -skew-x-6">
+              COMIC ISSUE #1 • LOCAL ARENA
             </div>
-            <div className="flex items-center justify-between gap-1.5 sm:gap-2">
-              {[5, 6, 7, 8, 9, 10].map((num) => (
-                <button
-                  type="button"
-                  key={num}
-                  onClick={() => handlePlayerCountChange(num)}
-                  className={`
-                    flex-1 py-2 sm:py-2.5 rounded-xl font-fredoka text-sm sm:text-base font-bold transition-all cursor-pointer border
-                    ${playerCount === num
-                      ? "bg-cozy-amber text-cozy-brown-dark border-cozy-amber-dark shadow-xs"
-                      : "bg-[#FAF7F0] border-cozy-parchment text-cozy-brown hover:border-cozy-amber"
-                    }
-                  `}
-                >
-                  {num}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Player Names & Seats */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-fredoka font-bold uppercase tracking-wider text-cozy-brown">
-                Player Seats & Custom Names
-              </label>
-              <button
-                type="button"
-                onClick={handleRandomizeNames}
-                className="text-xs font-fredoka font-semibold text-cozy-amber-dark hover:underline cursor-pointer flex items-center gap-1"
-              >
-                <span>🎲</span>
-                <span>Randomize Names</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
-              {Array.from({ length: playerCount }).map((_, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-2 bg-[#FAF7F0] border border-cozy-parchment rounded-xl px-2.5 py-1.5 focus-within:border-cozy-amber transition-colors"
-                >
-                  <span className="font-fredoka text-xs font-bold text-cozy-brown-dark bg-cozy-parchment/60 px-1.5 py-0.5 rounded-md min-w-[28px] text-center">
-                    P{idx + 1}
-                  </span>
-                  <input
-                    type="text"
-                    maxLength={20}
-                    value={playerNames[idx] || ""}
-                    onChange={(e) => handleNameChange(idx, e.target.value)}
-                    placeholder={`Player ${idx + 1}`}
-                    className="w-full bg-transparent text-sm font-fredoka font-semibold text-cozy-brown-dark focus:outline-none placeholder:text-cozy-brown/40"
-                  />
-                  <span className="text-base flex-shrink-0" title="Hand-drawn storybook fighter">
-                    ✏️
-                  </span>
-                </div>
-              ))}
-            </div>
-            <p className="text-[11px] font-fredoka text-cozy-brown/70 mt-2">
-              Seats and initial turn order are randomly shuffled at match creation. 5 distinct hand-drawn stick characters will be assigned to each seat's matrix cells.
+            <h1 className="font-bangers text-3xl sm:text-5xl tracking-wider text-[#E5C467] comic-title-3d leading-none">
+              PageShooter
+            </h1>
+            <p className="text-xs sm:text-sm font-bold text-[#FAF4E6]/90 mt-1">
+              Hand-Drawn Illustrated Folio Game for 5 to 10 players
             </p>
           </div>
+          <div className="hidden sm:flex flex-col items-center justify-center bg-[#E5C467] text-[#1C1917] border-3 border-[#FAF4E6] px-3 py-2 -rotate-3 shadow-[4px_4px_0_#C85A48]">
+            <span className="text-2xl leading-none">📖⚡</span>
+            <span className="font-bangers text-xs tracking-wider uppercase mt-0.5">5-10 SCRIBES</span>
+          </div>
+        </div>
 
-          {/* Start Battle Button */}
-          <button
-            type="submit"
-            className="cartoon-btn w-full py-3.5 sm:py-4 bg-[#FFB703] hover:bg-[#FFC933] text-[#1E1410] font-fredoka font-bold text-base rounded-2xl cursor-pointer"
-          >
-            Begin Folio Match ➔
-          </button>
-        </form>
+        <div className="p-5 sm:p-8">
+          {/* Saved Match Notice (If Active Match Exists in IndexedDB) */}
+          {savedMatch && savedMatch.phase === "ACTIVE" && (
+            <div className="mb-6 p-4 bg-[#E5C467] border-4 border-[#1C1917] shadow-[6px_6px_0_#1C1917] flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-left">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🔖</span>
+                  <span className="font-bangers tracking-wider text-[#1C1917] text-lg uppercase">
+                    Active Game Discovered!
+                  </span>
+                </div>
+                <p className="text-xs font-bold text-[#1C1917]/80 mt-0.5">
+                  Turn {savedMatch.turn.turnNumber} • {savedMatch.players.length} players
+                </p>
+              </div>
+              <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={onResumeSavedMatch}
+                  className="cartoon-btn flex-1 sm:flex-none px-4 py-2 bg-[#688B9A] hover:bg-[#7A9DAB] text-[#FAF4E6] font-bangers tracking-wider text-sm uppercase cursor-pointer"
+                >
+                  ▶ Resume Game!
+                </button>
+                <button
+                  type="button"
+                  onClick={onDiscardSavedMatch}
+                  className="cartoon-btn flex-1 sm:flex-none px-3.5 py-2 bg-[#C85A48] hover:bg-[#D66A59] text-[#FAF4E6] font-bangers tracking-wider text-sm uppercase cursor-pointer"
+                >
+                  ✕ Discard
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Setup Form */}
+          <form onSubmit={handleStart} className="space-y-5">
+            {/* Player Count Selector */}
+            <div className="bg-[#EFE6D0] border-3 border-[#1C1917] p-4 shadow-[4px_4px_0_#1C1917]">
+              <div className="flex items-center justify-between mb-2.5">
+                <label className="block text-xs font-bangers tracking-wider uppercase bg-[#1C1917] text-[#FAF4E6] px-2.5 py-0.5">
+                  Number of Players (5 – 10)
+                </label>
+                <span className="text-[11px] font-bold text-[#1C1917]/80">
+                  All seats share equal folio columns
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                {[5, 6, 7, 8, 9, 10].map((num) => (
+                  <button
+                    type="button"
+                    key={num}
+                    onClick={() => handlePlayerCountChange(num)}
+                    className={`
+                      cartoon-btn flex-1 py-2 sm:py-2.5 font-bangers text-base sm:text-lg tracking-wider cursor-pointer
+                      ${playerCount === num
+                        ? "bg-[#C85A48] text-[#FAF4E6]"
+                        : "bg-[#FAF4E6] text-[#1C1917] hover:bg-[#E5C467]"
+                      }
+                    `}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Player Names & Seats */}
+            <div className="bg-[#FAF4E6] border-3 border-[#1C1917] p-4 shadow-[4px_4px_0_#1C1917]">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-xs font-bangers tracking-wider uppercase bg-[#1C1917] text-[#FAF4E6] px-2.5 py-0.5">
+                  Player Seats & Custom Names
+                </label>
+                <button
+                  type="button"
+                  onClick={handleRandomizeNames}
+                  className="cartoon-btn px-3 py-1 bg-[#688B9A] hover:bg-[#7A9DAB] text-[#FAF4E6] text-xs font-bangers tracking-wider uppercase cursor-pointer flex items-center gap-1"
+                >
+                  <span>🎲</span>
+                  <span>Randomize Names</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                {Array.from({ length: playerCount }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 bg-[#EFE6D0] border-2 border-[#1C1917] shadow-[3px_3px_0_#1C1917] px-2.5 py-1.5 focus-within:bg-[#E5C467]/45 transition-colors"
+                  >
+                    <span className="font-bangers tracking-wider text-xs text-[#FAF4E6] bg-[#1C1917] px-2 py-0.5 min-w-[30px] text-center">
+                      P{idx + 1}
+                    </span>
+                    <input
+                      type="text"
+                      maxLength={20}
+                      value={playerNames[idx] || ""}
+                      onChange={(e) => handleNameChange(idx, e.target.value)}
+                      placeholder={`Player ${idx + 1}`}
+                      className="w-full bg-transparent text-sm font-bold text-[#1C1917] focus:outline-none placeholder:text-[#1C1917]/40"
+                    />
+                    <span className="text-base flex-shrink-0" title="Comic duellist cell">
+                      ✏️
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Editor's Note Comic Caption Box (Reference 3 Style) */}
+              <div className="comic-editors-note mt-3 p-2.5">
+                * Editor&apos;s note: Seats & turn order shuffle automatically! Each player commands 5 goofy comic duellists across cells #0, #2, #4, #6, and #8.
+              </div>
+            </div>
+
+            {/* Start Battle Skewed Comic Ribbon Button */}
+            <button
+              type="submit"
+              className="cartoon-btn w-full py-3.5 sm:py-4 bg-[#E5C467] hover:bg-[#EDD07A] text-[#1C1917] font-bangers tracking-widest text-xl uppercase cursor-pointer flex items-center justify-center gap-2"
+            >
+              <span>☛</span>
+              <span>Begin Folio Match ➔</span>
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

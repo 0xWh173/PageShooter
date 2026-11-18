@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: pageshooter-server
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node apps/server/dist/index.js
+    healthCheckPath: /api/ready
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COOKIE_SAMESITE
+        value: none
+      - key: CORS_ORIGIN
+        sync: false

@@ -89,99 +89,173 @@ export const BookCinematic: React.FC<BookCinematicProps> = ({
   const tensAndHundreds = Math.floor(pageNumber / 10);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2B2118]/80 backdrop-blur-sm p-4 animate-in fade-in select-none">
-      {/* Fast Forward Skip Button */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1C1917]/80 backdrop-blur-sm p-4 animate-in fade-in select-none">
+      {/* Fast Forward Skip Button (Comic Ribbon) */}
       <button
         onClick={handleSkip}
-        className="absolute top-6 right-6 text-xs font-fredoka font-semibold text-cozy-brown-dark bg-[#FFFDF9] border border-cozy-parchment hover:border-cozy-amber px-3.5 py-1.5 rounded-full shadow-subtle transition-all cursor-pointer flex items-center gap-1.5"
+        className="cartoon-btn absolute top-6 right-6 text-xs sm:text-sm font-bangers tracking-wider uppercase text-[#1C1917] bg-[#E5C467] hover:bg-[#EDD07A] px-4 py-1.5 cursor-pointer flex items-center gap-1.5"
       >
         <span>Turn Leaf Fast</span>
         <span>⏩</span>
       </button>
 
-      <div className="relative max-w-lg w-full flex flex-col items-center">
-        {/* Storybook Tome Container */}
-        <div className="relative w-84 sm:w-96 h-64 sm:h-72 bg-[#8A5B38] rounded-2xl border-2 border-[#5C3B20] shadow-2xl flex overflow-hidden p-2">
-          {/* Leather spine with gold bookmark ribbon */}
-          <div className="w-7 h-full bg-[#5C3B20] border-r border-[#4A2D17] flex flex-col items-center justify-between py-4 rounded-l-xl flex-shrink-0">
-            <span className="w-1.5 h-16 bg-cozy-amber rounded-full" />
+      <div className="relative max-w-2xl w-full flex flex-col items-center">
+        {/* Top Comic Issue Banner */}
+        <div className="mb-3 bg-[#1C1917] text-[#FAF4E6] border-3 border-[#1C1917] shadow-[5px_5px_0_#C85A48] px-4 py-1 -skew-x-6 flex items-center gap-2">
+          <span className="text-base">📖</span>
+          <span className="font-bangers tracking-widest text-sm sm:text-base text-[#E5C467] uppercase">
+            COMIC FOLIO ISSUE #{phase === "REVEAL" || phase === "CONSEQUENCE" ? pageNumber : displayPage} • DESTINY ROLL!
+          </span>
+        </div>
+
+        {/* Open Two-Page Vintage Comic Book Spread */}
+        <div className="relative w-full max-w-xl bg-[#1C1917] border-4 border-[#1C1917] shadow-[10px_10px_0_#1C1917] p-2 sm:p-2.5 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          {/* Center Stapled Comic Spine Accent (Desktop) */}
+          <div
+            aria-hidden="true"
+            className="hidden sm:flex absolute inset-y-2 left-1/2 -translate-x-1/2 w-3 z-20 flex-col items-center justify-around pointer-events-none"
+          >
+            <span className="w-1.5 h-5 bg-[#A99B82] border border-[#1C1917] rounded-xs" />
+            <span className="w-1.5 h-5 bg-[#A99B82] border border-[#1C1917] rounded-xs" />
           </div>
 
-          {/* Left Parchment Page */}
-          <div className="flex-1 bg-[#FAF7F0] p-4 sm:p-5 border-r border-cozy-parchment flex flex-col justify-between">
-            <div className="text-[11px] font-fredoka font-bold text-cozy-brown-dark uppercase tracking-wider text-center border-b border-cozy-parchment pb-1">
-              The Grand Storybook
+          {/* LEFT COMIC PAGE: 2 Stacked Graphic-Novel Story Panels */}
+          <div className="bg-[#FAF4E6] border-3 border-[#1C1917] p-3 flex flex-col justify-between gap-2.5 relative overflow-hidden">
+            {/* Top Header Strip */}
+            <div className="bg-[#1C1917] text-[#E5C467] font-bangers tracking-wider text-xs uppercase px-2.5 py-1 text-center">
+              THE GRAND COMICBOOK
             </div>
-            <div className="flex flex-col items-center justify-center my-auto">
-              <span className="text-xl text-cozy-amber">✦ ✦ ✦</span>
-              <p className="text-xs font-fredoka text-cozy-brown-dark/80 text-center mt-2 italic px-2">
-                "A turn of the leaf, a destined number, a stickman awakes."
+
+            {/* Comic Panel 1: Goofy Scribe Flipping Pages SVG Illustration */}
+            <div className="border-2 border-[#1C1917] bg-[#EFE6D0] p-2 flex flex-col items-center justify-center relative">
+              {/* Speech Bubble */}
+              <div className="bg-[#FAF4E6] border-2 border-[#1C1917] shadow-[2px_2px_0_#1C1917] px-2.5 py-0.5 text-[10px] font-bold text-[#1C1917] mb-1 -rotate-2">
+                {phase === "FLIPPING" ? '"FLIP-FLAP-WHOOSH!!"' : '"BEHOLD! THE SACRED PAGE!"'}
+              </div>
+
+              <svg viewBox="0 0 160 86" className="w-36 h-20 overflow-visible">
+                {/* Goofy Comic Scribe Head & Big Glasses */}
+                <circle cx="52" cy="40" r="16" fill="#FAF4E6" stroke="#1C1917" strokeWidth="2.6" />
+                {/* Silly Wizard/Scribe Beret */}
+                <ellipse cx="50" cy="24" rx="18" ry="6" fill="#C85A48" stroke="#1C1917" strokeWidth="2.2" transform="rotate(-10 50 24)" />
+                {/* Big Comical Goggle Glasses */}
+                <circle cx="46" cy="39" r="6" fill="#FFFFFF" stroke="#1C1917" strokeWidth="2.2" />
+                <circle cx="59" cy="39" r="6" fill="#FFFFFF" stroke="#1C1917" strokeWidth="2.2" />
+                <circle cx="47" cy="39" r="2.2" fill="#1C1917" />
+                <circle cx="60" cy="39" r="2.2" fill="#1C1917" />
+                {/* Excited Open Grin */}
+                <path d="M 46 49 Q 53 56 60 49 Z" fill="#C85A48" stroke="#1C1917" strokeWidth="1.8" />
+                {/* Mini Comic Book Flipping Pages on Desk */}
+                <path d="M 88 64 L 116 54 L 144 64 L 116 72 Z" fill="#E5C467" stroke="#1C1917" strokeWidth="2.2" />
+                <path d="M 116 70 L 116 42 L 140 48 L 140 64 Z" fill="#FAF4E6" stroke="#1C1917" strokeWidth="2" />
+                <path d="M 116 70 L 116 42 L 92 48 L 92 64 Z" fill="#FAF4E6" stroke="#1C1917" strokeWidth="2" />
+                {/* Motion Flip Arcs */}
+                <path d="M 96 36 Q 116 20 136 36" fill="none" stroke="#C85A48" strokeWidth="2" strokeDasharray="4 3" />
+                <text x="116" y="24" textAnchor="middle" fontSize="10" fontFamily="Bangers, sans-serif" fill="#1C1917">
+                  FLIP! FLIP!
+                </text>
+              </svg>
+            </div>
+
+            {/* Comic Panel 2: Caption Strip */}
+            <div className="bg-[#E5C467] border-2 border-[#1C1917] p-2 text-center shadow-[2px_2px_0_#1C1917]">
+              <p className="text-[11px] font-bold text-[#1C1917] leading-snug italic">
+                &ldquo;A turn of the comic leaf, a destined number, a goofy duellist awakes!&rdquo;
               </p>
             </div>
-            <div className="text-[10px] font-fredoka text-cozy-brown/60 text-center">
-              PageShooter Tales
+
+            <div className="text-[10px] font-mono font-bold text-[#1C1917]/70 text-center uppercase">
+              PageShooter Comic Tales
             </div>
           </div>
 
-          {/* Right Parchment Page (Identical Light Parchment Background) */}
+          {/* RIGHT COMIC PAGE: Destined Leaf & Jagged Starburst Number Reveal */}
           <div
             className={`
-              flex-1 bg-[#FAF7F0] p-4 sm:p-5 flex flex-col justify-between rounded-r-xl
+              bg-[#FAF4E6] border-3 border-[#1C1917] p-3 flex flex-col justify-between relative overflow-hidden
               ${phase === "FLIPPING" ? "animate-pulse" : ""}
             `}
           >
-            <div className="text-[11px] font-fredoka font-bold text-cozy-brown-dark uppercase tracking-wider text-center border-b border-cozy-parchment pb-1">
-              {phase === "FLIPPING" ? "Turning Page..." : "Destined Leaf"}
+            {/* Halftone Dot Backdrop */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 comic-halftone-dots opacity-40"
+            />
+
+            <div className="relative z-10 bg-[#C85A48] text-[#FAF4E6] border-2 border-[#1C1917] font-bangers tracking-wider text-xs uppercase px-2.5 py-1 text-center">
+              {phase === "FLIPPING" ? "⚡ Turning Comic Pages..." : "★ Destined Comic Panel ★"}
             </div>
 
-            {/* Revealed Page Number */}
-            <div className="flex flex-col items-center justify-center my-auto">
-              <div className="text-[10px] uppercase font-fredoka font-bold tracking-widest text-cozy-brown/80 mb-0.5">
-                Folio
-              </div>
-              <div className="flex items-baseline font-fredoka">
-                {phase === "REVEAL" || phase === "CONSEQUENCE" ? (
-                  <>
-                    <span className="text-4xl sm:text-5xl font-black text-cozy-brown-dark">
-                      {tensAndHundreds}
-                    </span>
-                    <span className="text-5xl sm:text-6xl font-black text-[#B87A28] inline-block ml-0.5">
-                      {outcome}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-4xl sm:text-5xl font-black text-cozy-brown-dark/70 font-mono">
-                    {displayPage}
+            {/* Revealed Page Number inside a Comic Starburst Medallion */}
+            <div className="relative z-10 flex flex-col items-center justify-center my-auto py-2">
+              <div className="relative flex items-center justify-center">
+                {/* Jagged Comic Burst Behind Page Number */}
+                <svg viewBox="0 0 180 120" className="w-44 h-28">
+                  <polygon
+                    points="90,4 108,22 136,10 132,35 166,34 146,58 174,78 142,84 152,110 118,98 98,116 80,98 46,112 54,84 20,80 46,58 24,34 60,36 56,10 82,22"
+                    fill="#1C1917"
+                    transform="translate(4, 4)"
+                  />
+                  <polygon
+                    points="90,4 108,22 136,10 132,35 166,34 146,58 174,78 142,84 152,110 118,98 98,116 80,98 46,112 54,84 20,80 46,58 24,34 60,36 56,10 82,22"
+                    fill="#E5C467"
+                    stroke="#1C1917"
+                    strokeWidth="3.5"
+                  />
+                </svg>
+
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-[10px] uppercase font-bangers tracking-widest text-[#1C1917]">
+                    FOLIO
                   </span>
-                )}
+                  <div className="flex items-baseline font-bangers leading-none">
+                    {phase === "REVEAL" || phase === "CONSEQUENCE" ? (
+                      <>
+                        <span className="text-3xl sm:text-4xl text-[#1C1917]">
+                          {tensAndHundreds}
+                        </span>
+                        <span className="text-4xl sm:text-5xl text-[#C85A48] inline-block ml-0.5 underline decoration-2">
+                          {outcome}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-3xl sm:text-4xl text-[#1C1917] font-mono font-extrabold">
+                        {displayPage}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {(phase === "REVEAL" || phase === "CONSEQUENCE") && (
-                <div className="mt-2 px-3 py-0.5 bg-[#F9EED9] border border-cozy-amber/80 rounded-full text-xs font-fredoka font-bold text-cozy-brown-dark flex items-center gap-1 shadow-xs">
-                  <span>⭐</span>
+                <div className="mt-1.5 px-3.5 py-1 bg-[#1C1917] text-[#E5C467] border-2 border-[#1C1917] shadow-[3px_3px_0_#C85A48] -skew-x-6 text-xs font-bangers tracking-wider uppercase flex items-center gap-1.5">
+                  <span>🎯</span>
                   <span>Target Cell #{outcome}</span>
                 </div>
               )}
             </div>
 
-            <div className="text-[10px] font-fredoka text-cozy-brown/60 text-center">
+            <div className="relative z-10 text-[10px] font-mono font-bold text-[#1C1917]/75 text-center uppercase">
               Page {phase === "REVEAL" || phase === "CONSEQUENCE" ? pageNumber : displayPage} of 500
             </div>
           </div>
         </div>
 
-        {/* Consequence Banner Subtitle */}
-        <div className="mt-4 text-center max-w-md px-4">
+        {/* Comic Speech-Bubble Consequence Banner */}
+        <div className="mt-4 text-center max-w-md w-full px-4">
           <div
             className={`
-              bg-[#FFFDF9] border-2 border-cozy-amber px-5 py-2.5 rounded-2xl shadow-subtle transition-all duration-300
+              bg-[#FAF4E6] border-3 border-[#1C1917] shadow-[6px_6px_0_#1C1917] px-5 py-3 transition-all duration-300 relative
               ${phase === "CONSEQUENCE"
                 ? "opacity-100 scale-100"
                 : "opacity-0 scale-95"
               }
             `}
           >
-            <p className="font-fredoka text-sm sm:text-base font-bold text-cozy-brown-dark">
+            <div className="text-[10px] font-mono font-bold uppercase text-[#C85A48] mb-0.5">
+              * Comic Narration:
+            </div>
+            <p className="font-bangers tracking-wider text-base sm:text-lg text-[#1C1917]">
               {consequenceText}
             </p>
           </div>

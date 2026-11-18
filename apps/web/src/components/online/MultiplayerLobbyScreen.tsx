@@ -100,34 +100,37 @@ export const MultiplayerLobbyScreen: React.FC<MultiplayerLobbyScreenProps> = ({
   const isActionDisabled = isCreating || isJoining || isSpectating;
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-8 animate-fadeIn text-[#f5ede0]">
-      {/* Top Welcome & Instant Scribe Name Card */}
-      <div className="cartoon-card bg-[#241938] p-6 mb-6 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="w-full max-w-4xl mx-auto px-4 py-8 animate-fadeIn text-[#1C1917]">
+      {/* Top Comic Issue Banner & Instant Scribe Name Panel (Warm Vintage Reference 3 Palette) */}
+      <div className="cartoon-card-lg bg-[#FAF4E6] mb-6 relative overflow-hidden">
+        <div className="bg-[#1C1917] text-[#FAF4E6] px-6 py-4 border-b-4 border-[#1C1917] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
-            <div className="w-14 h-14 rounded-2xl bg-[#191128] border-[3px] border-[#1E1410] shadow-[3px_3px_0_#1E1410] flex items-center justify-center text-3xl">
+            <div className="w-14 h-14 bg-[#E5C467] border-3 border-[#FAF4E6] shadow-[4px_4px_0_#C85A48] -rotate-3 flex items-center justify-center text-3xl">
               📖
             </div>
             <div>
-              <h1 className="text-2xl font-bold font-fredoka text-[#FFB703] tracking-wider drop-shadow-[2px_2px_0_#1E1410]">
+              <span className="inline-block bg-[#C85A48] text-[#FAF4E6] font-mono font-bold text-[10px] px-2 py-0.5 uppercase tracking-widest -skew-x-6 mb-1">
+                COMIC PORT • LIVE MULTIPLAYER
+              </span>
+              <h1 className="text-3xl font-bangers text-[#E5C467] tracking-wider uppercase leading-none">
                 Multiplayer Folio Arena
               </h1>
-              <p className="text-xs text-[#E2D9F3]">
+              <p className="text-xs font-bold text-[#FAF4E6]/85 mt-1">
                 Instant Online Play — Create or Join a Chamber Directly (5–10 Players)
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3 bg-[#191128] border-[3px] border-[#1E1410] shadow-[3px_3px_0_#1E1410] px-4 py-2 rounded-2xl">
-            <div className="w-8 h-8 rounded-full bg-[#FFB703] text-[#1E1410] border-2 border-[#1E1410] font-bold flex items-center justify-center text-xs">
+          <div className="flex items-center space-x-3 bg-[#E5C467] border-3 border-[#FAF4E6] shadow-[4px_4px_0_#688B9A] px-4 py-2 -skew-x-3">
+            <div className="w-8 h-8 bg-[#1C1917] text-[#E5C467] border-2 border-[#1C1917] font-bangers flex items-center justify-center text-sm">
               {(scribeName || "S").slice(0, 2).toUpperCase()}
             </div>
             <div className="text-left">
-              <label htmlFor="scribe-name-input" className="block text-[10px] font-bold text-[#21D4FD] uppercase tracking-wider">
+              <label htmlFor="scribe-name-input" className="block text-[10px] font-bangers text-[#9E3526] uppercase tracking-wider">
                 Online Scribe
               </label>
               {isAuthenticated && user ? (
-                <div className="text-xs font-bold text-[#FFFDF7]">{user.username}</div>
+                <div className="text-xs font-extrabold text-[#1C1917]">{user.username}</div>
               ) : (
                 <input
                   id="scribe-name-input"
@@ -137,7 +140,7 @@ export const MultiplayerLobbyScreen: React.FC<MultiplayerLobbyScreenProps> = ({
                   value={scribeName}
                   onChange={(e) => setScribeName(e.target.value)}
                   disabled={isActionDisabled}
-                  className="bg-transparent text-xs font-bold text-[#FFFDF7] focus:outline-none border-b border-dashed border-[#FFB703]/60 focus:border-[#FFB703] w-32"
+                  className="bg-transparent text-xs font-extrabold text-[#1C1917] focus:outline-none border-b-2 border-dashed border-[#1C1917] w-32"
                 />
               )}
             </div>
@@ -147,97 +150,103 @@ export const MultiplayerLobbyScreen: React.FC<MultiplayerLobbyScreenProps> = ({
 
       {/* Error Banner */}
       {errorMessage && (
-        <div className="mb-6 p-4 bg-red-950/80 border-2 border-red-500/50 rounded-xl text-red-200 text-xs flex items-center space-x-3 shadow-lg">
+        <div className="mb-6 p-4 bg-[#C85A48] border-4 border-[#1C1917] shadow-[6px_6px_0_#1C1917] text-[#FAF4E6] text-xs flex items-center space-x-3">
           <span className="text-xl">⚠️</span>
-          <span className="flex-1 font-semibold">{errorMessage}</span>
+          <span className="flex-1 font-bold">{errorMessage}</span>
           <button
             onClick={() => setErrorMessage(null)}
-            className="text-red-300 hover:text-white text-sm"
+            className="text-[#FAF4E6] hover:text-[#E5C467] text-sm font-bold"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Action Cards: Create Room & Join Room */}
+      {/* Action Panels: Create Room & Join Room */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Card 1: Create Room */}
-        <div className="cartoon-card bg-[#241938] p-6 flex flex-col justify-between relative">
+        {/* Panel 1: Create Room */}
+        <div className="cartoon-card bg-[#FAF4E6] flex flex-col justify-between relative overflow-hidden">
           <div>
-            <div className="flex items-center space-x-3 mb-3">
-              <span className="text-3xl drop-shadow-[2px_2px_0_#1E1410]">🏰</span>
-              <h2 className="text-lg font-bold font-fredoka text-[#FFB703] drop-shadow-[1px_1px_0_#1E1410]">
+            <div className="bg-[#1C1917] text-[#E5C467] px-5 py-3 border-b-4 border-[#1C1917] flex items-center space-x-3">
+              <span className="text-2xl">🏰</span>
+              <h2 className="text-2xl font-bangers tracking-wider uppercase">
                 Create Private Room
               </h2>
             </div>
-            <p className="text-xs text-[#E2D9F3] leading-relaxed mb-4">
-              Open a new magical chamber. You will become the Room Host with authority to manage participants and launch the match when 5–10 players are assembled.
-            </p>
-            <ul className="text-[11px] text-[#B8A9D4] space-y-1 mb-6">
-              <li>• 5 to 10 players required to launch</li>
-              <li>• Up to 5 additional spectators supported</li>
-              <li>• Automatic 10-minute timeout for idle waiting rooms</li>
-            </ul>
+            <div className="p-6">
+              <p className="text-xs font-bold text-[#1C1917] leading-relaxed mb-4">
+                Open a new comic battle chamber! You become the Room Host with authority to manage participants and launch the match when 5–10 players assemble.
+              </p>
+              <ul className="text-xs font-bold text-[#1C1917]/80 space-y-1.5 bg-[#EFE6D0] border-2 border-[#1C1917] p-3 shadow-[3px_3px_0_#1C1917]">
+                <li>★ 5 to 10 players required to launch</li>
+                <li>★ Up to 5 additional spectators supported</li>
+                <li>★ Automatic 10-minute timeout for idle waiting rooms</li>
+              </ul>
+            </div>
           </div>
 
-          <button
-            onClick={handleCreateRoom}
-            disabled={isActionDisabled}
-            className="cartoon-btn w-full py-3 bg-[#FFB703] hover:bg-[#FFC933] text-[#1E1410] font-bold text-xs uppercase tracking-wider rounded-2xl disabled:opacity-50 flex items-center justify-center space-x-2 cursor-pointer"
-          >
-            {isCreating ? (
-              <>
-                <span className="animate-spin">⏳</span>
-                <span>Opening Chamber...</span>
-              </>
-            ) : (
-              <>
-                <span>✨</span>
-                <span>Inscribe New Room</span>
-              </>
-            )}
-          </button>
+          <div className="px-6 pb-6">
+            <button
+              onClick={handleCreateRoom}
+              disabled={isActionDisabled}
+              className="cartoon-btn w-full py-3.5 bg-[#E5C467] hover:bg-[#EDD07A] text-[#1C1917] font-bangers text-lg uppercase tracking-wider disabled:opacity-50 flex items-center justify-center space-x-2 cursor-pointer"
+            >
+              {isCreating ? (
+                <>
+                  <span className="animate-spin">⏳</span>
+                  <span>Opening Chamber...</span>
+                </>
+              ) : (
+                <>
+                  <span>☛</span>
+                  <span>Inscribe New Room</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
-        {/* Card 2: Join Room by Code */}
-        <div className="cartoon-card bg-[#241938] p-6 flex flex-col justify-between">
+        {/* Panel 2: Join Room by Code */}
+        <div className="cartoon-card bg-[#FAF4E6] flex flex-col justify-between overflow-hidden">
           <div>
-            <div className="flex items-center space-x-3 mb-3">
-              <span className="text-3xl drop-shadow-[2px_2px_0_#1E1410]">🗝️</span>
-              <h2 className="text-lg font-bold font-fredoka text-[#21D4FD] drop-shadow-[1px_1px_0_#1E1410]">
+            <div className="bg-[#1C1917] text-[#9AC0CD] px-5 py-3 border-b-4 border-[#1C1917] flex items-center space-x-3">
+              <span className="text-2xl">🗝️</span>
+              <h2 className="text-2xl font-bangers tracking-wider uppercase">
                 Enter Room Code
               </h2>
             </div>
-            <p className="text-xs text-[#E2D9F3] leading-relaxed mb-3">
-              Join an existing match using the six-character Base-32 chamber code shared by the host scribe.
-            </p>
+            <div className="p-6 pb-2">
+              <p className="text-xs font-bold text-[#1C1917] leading-relaxed mb-3">
+                Join an existing match using the six-character Base-32 chamber code shared by the host scribe.
+              </p>
 
-            <div className="mb-4">
-              <label htmlFor="room-code-input" className="block text-[11px] font-semibold text-[#C9BDD9] mb-1">
-                Six-Character Code:
-              </label>
-              <input
-                id="room-code-input"
-                type="text"
-                placeholder="ABC234"
-                value={roomCodeInput}
-                onChange={handleRoomCodeChange}
-                disabled={isActionDisabled}
-                maxLength={6}
-                className="cartoon-input w-full bg-[#191128] rounded-2xl px-4 py-2.5 text-center text-lg font-mono font-bold tracking-[0.25em] text-[#FFB703] uppercase focus:border-[#FFB703] disabled:opacity-50"
-              />
-              <div className="flex justify-between items-center text-[10px] text-[#B8A9D4] mt-1.5 px-1">
-                <span>Base-32 Code</span>
-                <span>{roomCodeInput.length} / 6</span>
+              <div className="mb-3">
+                <label htmlFor="room-code-input" className="block text-xs font-bangers tracking-wider uppercase text-[#1C1917] mb-1">
+                  Six-Character Code:
+                </label>
+                <input
+                  id="room-code-input"
+                  type="text"
+                  placeholder="ABC234"
+                  value={roomCodeInput}
+                  onChange={handleRoomCodeChange}
+                  disabled={isActionDisabled}
+                  maxLength={6}
+                  className="cartoon-input w-full bg-[#EFE6D0] px-4 py-2.5 text-center text-xl font-mono font-extrabold tracking-[0.25em] text-[#1C1917] uppercase focus:bg-[#E5C467]/40 disabled:opacity-50"
+                />
+                <div className="flex justify-between items-center text-[11px] font-bold text-[#1C1917]/80 mt-1.5 px-1">
+                  <span>Base-32 Code</span>
+                  <span>{roomCodeInput.length} / 6</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-2">
+          <div className="grid grid-cols-2 gap-3 px-6 pb-6">
             <button
               onClick={handleJoinAsPlayer}
               disabled={isActionDisabled || roomCodeInput.length !== 6}
-              className="cartoon-btn py-2.5 bg-[#21D4FD] hover:bg-[#5CE1FF] text-[#1E1410] font-bold text-xs uppercase tracking-wider rounded-2xl disabled:opacity-40 flex items-center justify-center space-x-1 cursor-pointer"
+              className="cartoon-btn py-3 bg-[#688B9A] hover:bg-[#7A9DAB] text-[#FAF4E6] font-bangers text-base uppercase tracking-wider disabled:opacity-40 flex items-center justify-center space-x-1 cursor-pointer"
             >
               {isJoining ? <span>Joining...</span> : <span>Join as Player</span>}
             </button>
@@ -245,7 +254,7 @@ export const MultiplayerLobbyScreen: React.FC<MultiplayerLobbyScreenProps> = ({
             <button
               onClick={handleJoinAsSpectator}
               disabled={isActionDisabled || roomCodeInput.length !== 6}
-              className="cartoon-btn py-2.5 bg-[#34264D] hover:bg-[#433163] text-[#FFFDF7] font-bold text-xs uppercase tracking-wider rounded-2xl disabled:opacity-40 flex items-center justify-center space-x-1 cursor-pointer"
+              className="cartoon-btn py-3 bg-[#C85A48] hover:bg-[#D66A59] text-[#FAF4E6] font-bangers text-base uppercase tracking-wider disabled:opacity-40 flex items-center justify-center space-x-1 cursor-pointer"
             >
               {isSpectating ? <span>Entering...</span> : <span>Spectate</span>}
             </button>
@@ -253,15 +262,17 @@ export const MultiplayerLobbyScreen: React.FC<MultiplayerLobbyScreenProps> = ({
         </div>
       </div>
 
-      {/* Rules & Architecture Invariants Banner */}
-      <div className="mt-8 p-4 bg-[#141019] border border-[#2b2138] rounded-xl text-xs text-[#8e809e] flex flex-col sm:flex-row items-center justify-between gap-3">
+      {/* Rules & Editor's Note Banner (Reference 3 Style) */}
+      <div className="comic-editors-note mt-8 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center space-x-2">
           <span>🛡️</span>
           <span>
-            <strong>Server-Authoritative:</strong> All dice rolls use cryptographic commitment-reveal; match state exists strictly in RAM.
+            <strong>* Editor&apos;s Note (Server-Authoritative):</strong> All dice rolls use cryptographic commitment-reveal; match state exists strictly in RAM.
           </span>
         </div>
-        <div className="text-[11px] text-[#22d3ee]">v3.2.0 Locked Protocol</div>
+        <div className="bg-[#C85A48] text-[#FAF4E6] border-2 border-[#1C1917] px-3 py-0.5 font-bangers tracking-widest text-xs uppercase -skew-x-6">
+          TO BE CONTINUED... • v3.2.0
+        </div>
       </div>
     </div>
   );

@@ -19,7 +19,8 @@ export const envSchema = z.object({
     .default("dev_jwt_secret_super_secure_key_at_least_32_characters_long_12345"),
   JWT_EXPIRES_IN: z.string().default("24h"),
   GOOGLE_CLIENT_ID: z.string().optional(),
-  MAX_ACTIVE_ROOMS: z.coerce.number().int().positive().default(20)
+  MAX_ACTIVE_ROOMS: z.coerce.number().int().positive().default(20),
+  COOKIE_SAMESITE: z.enum(["lax", "none", "strict"]).default("lax")
 });
 
 const FORBIDDEN_PROD_SECRETS = new Set([
@@ -61,11 +62,12 @@ export function getSessionCookieName(nodeEnv: string = config.NODE_ENV): string 
 
 export function getSessionCookieOptions(nodeEnv: string = config.NODE_ENV) {
   const isProd = nodeEnv === "production";
+  const sameSite = isProd && process.env.COOKIE_SAMESITE === "none" ? ("none" as const) : ("lax" as const);
   return {
     path: "/",
     httpOnly: true,
     secure: isProd,
-    sameSite: "lax" as const
+    sameSite
     // Note: Max-Age and Expires are intentionally omitted for Option B Browser-Session cookie
   };
 }

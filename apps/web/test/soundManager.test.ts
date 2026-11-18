@@ -39,11 +39,13 @@ describe("SoundManager & Audio Settings Persistence", () => {
 
   it("safely invokes all katana execution sound methods without throwing", () => {
     expect(() => soundManager.playKatanaUnsheathe()).not.toThrow();
+    expect(() => soundManager.playThunderDashBurst()).not.toThrow();
     expect(() => soundManager.playRealisticFleshSlice()).not.toThrow();
     expect(() => soundManager.playKatanaSlice()).not.toThrow();
     expect(() => soundManager.playScreenBloodSlap()).not.toThrow();
     expect(() => soundManager.playBloodSplash()).not.toThrow();
     expect(() => soundManager.playChiburuiFlick()).not.toThrow();
     expect(() => soundManager.playKatanaSheathe()).not.toThrow();
+    expect(() => soundManager.playKnockoutStampSlam()).not.toThrow();
   });
 });

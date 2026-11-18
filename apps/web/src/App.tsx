@@ -267,7 +267,8 @@ export const AppContent: React.FC = () => {
     if (gameMode === "ONLINE" && activeOnlineRoom && isAuthenticated && user) {
       const client = new WebSocketClient({
         url: getWsBaseUrl(),
-        autoReconnect: true
+        autoReconnect: true,
+        enableHttpFallback: true
       });
 
       let isMounted = true;
@@ -531,35 +532,42 @@ export const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen cartoon-halftone-bg text-[#FFFDF7] flex flex-col justify-between selection:bg-[#FFB703] selection:text-[#1E1410] w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen cartoon-halftone-bg text-[#1C1917] flex flex-col justify-between selection:bg-[#C85A48] selection:text-[#FAF4E6] w-full max-w-full overflow-x-hidden">
       <CartoonClickEffects />
-      {/* Top Application Header & Mode Switcher */}
-      <header className="w-full bg-[#241938] border-b-[3px] border-[#1E1410] shadow-[0_4px_0_#1E1410] py-2.5 px-3 sm:px-5 flex flex-wrap items-center justify-between gap-2 z-30 flex-shrink-0">
-        <div className="flex items-center space-x-2">
-          <span className="text-xl sm:text-2xl drop-shadow-[2px_2px_0_#1E1410]">📖</span>
-          <span className="font-fredoka font-bold text-sm sm:text-base tracking-wide text-[#FFB703] drop-shadow-[2px_2px_0_#1E1410]">
+      {/* Top Comic-Book Issue Header & Mode Switcher */}
+      <header className="w-full bg-[#1C1917] border-b-4 border-[#1C1917] shadow-[0_4px_0_rgba(28,25,23,0.35)] py-2.5 px-3 sm:px-5 flex flex-wrap items-center justify-between gap-2 z-30 flex-shrink-0">
+        <div className="flex items-center space-x-2.5">
+          <span className="text-lg sm:text-xl bg-[#C85A48] border-2 border-[#FAF4E6] px-1.5 py-0.5 -rotate-6 shadow-[2px_2px_0_#E5C467]">
+            📖
+          </span>
+          <span className="font-bangers text-xl sm:text-2xl tracking-widest text-[#E5C467] uppercase">
             PageShooter
+          </span>
+          <span className="hidden md:inline-block bg-[#FAF4E6] text-[#1C1917] font-mono font-bold text-[10px] px-2 py-0.5 -skew-x-6">
+            COMIC EDITION
           </span>
         </div>
 
-        {/* Mode Switcher */}
-        <div className="flex items-center bg-[#191128] p-1 rounded-2xl border-[3px] border-[#1E1410] shadow-[3px_3px_0_#1E1410] gap-1">
+        {/* Skewed Comic Ribbon Mode Switcher (Click Burst Enabled ONLY Here) */}
+        <div className="flex items-center bg-[#FAF4E6] p-1 border-3 border-[#1C1917] shadow-[4px_4px_0_#C85A48] gap-1.5">
           <button
+            data-cartoon-click="true"
             onClick={() => setGameMode("OFFLINE")}
-            className={`px-2.5 sm:px-3.5 py-1 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all ${
+            className={`px-3 sm:px-4 py-1 text-xs sm:text-sm font-bangers tracking-wider uppercase whitespace-nowrap transition-all cursor-pointer ${
               gameMode === "OFFLINE"
-                ? "cartoon-btn bg-[#FFB703] text-[#1E1410]"
-                : "text-[#C9BDD9] hover:text-[#FFFDF7]"
+                ? "cartoon-btn bg-[#E5C467] text-[#1C1917]"
+                : "text-[#1C1917]/70 hover:text-[#1C1917]"
             }`}
           >
             Local Pass & Play
           </button>
           <button
+            data-cartoon-click="true"
             onClick={() => setGameMode("ONLINE")}
-            className={`px-2.5 sm:px-3.5 py-1 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all ${
+            className={`px-3 sm:px-4 py-1 text-xs sm:text-sm font-bangers tracking-wider uppercase whitespace-nowrap transition-all cursor-pointer ${
               gameMode === "ONLINE"
-                ? "cartoon-btn bg-[#21D4FD] text-[#1E1410]"
-                : "text-[#C9BDD9] hover:text-[#FFFDF7]"
+                ? "cartoon-btn bg-[#688B9A] text-[#FAF4E6]"
+                : "text-[#1C1917]/70 hover:text-[#1C1917]"
             }`}
           >
             Online Multiplayer
@@ -573,13 +581,13 @@ export const AppContent: React.FC = () => {
             title="Audio Mixer (5 Channels)"
             aria-label="Audio Settings"
             data-testid="open-audio-settings"
-            className="cartoon-btn px-2.5 py-1 bg-[#34264D] hover:bg-[#433163] rounded-xl text-xs font-bold text-[#FFFDF7]"
+            className="cartoon-btn px-3 py-1 bg-[#E5C467] hover:bg-[#EDD07A] text-xs font-bangers tracking-wider text-[#1C1917]"
           >
             🔊
           </button>
           {isAuthenticated && user && (
-            <div className="flex items-center space-x-1.5 sm:space-x-2 bg-[#34264D] border-2 border-[#1E1410] px-2.5 py-1 rounded-xl text-xs font-bold text-[#FFFDF7]">
-              <span className="w-5 h-5 rounded-full bg-[#FFB703] text-[#1E1410] border-2 border-[#1E1410] font-bold flex items-center justify-center text-[10px]">
+            <div className="flex items-center space-x-1.5 sm:space-x-2 bg-[#FAF4E6] border-2 border-[#1C1917] shadow-[3px_3px_0_#688B9A] px-2.5 py-1 text-xs font-bold text-[#1C1917] -skew-x-3">
+              <span className="w-5 h-5 bg-[#C85A48] text-[#FAF4E6] border-2 border-[#1C1917] font-bangers flex items-center justify-center text-xs">
                 {user.username[0]?.toUpperCase()}
               </span>
               <span className="max-w-[70px] sm:max-w-none truncate">{user.username}</span>

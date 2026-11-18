@@ -57,6 +57,8 @@ export const CombatAnimation: React.FC<CombatAnimationProps> = ({
 }) => {
   const [phase, setPhase] = useState<CartoonCombatPhase>(fixedPhase || "FOCUS");
   const [dashProgress, setDashProgress] = useState<number>(0);
+  const [videoPlaying, setVideoPlaying] = useState<boolean>(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const completedRef = useRef(false);
 
   const shooterChar = getCharacter(shooterCharacterId);
@@ -77,6 +79,49 @@ export const CombatAnimation: React.FC<CombatAnimationProps> = ({
   const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const fixedTimeParam = urlParams?.get("time") ? parseInt(urlParams.get("time")!, 10) : null;
   const fixedProgParam = urlParams?.get("dash_prog") ? parseFloat(urlParams.get("dash_prog")!) : null;
+  const isLivePlayback = !fixedPhase && fixedTimeParam === null && !prefersReducedMotion;
+
+  // Sync HTML5 video volume with SoundManager combat channel
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid || !isLivePlayback) return;
+
+    const effectiveVol = soundManager.getEffectiveVolume("combat");
+    vid.volume = Math.max(0, Math.min(1, effectiveVol));
+    vid.muted = effectiveVol <= 0;
+
+    const playPromise = vid.play();
+    if (playPromise && typeof playPromise.then === "function") {
+      playPromise
+        .then(() => {
+          setVideoPlaying(true);
+        })
+        .catch(() => {
+          setVideoPlaying(false);
+        });
+    }
+  }, [isLivePlayback]);
+
+  const handleVideoTimeUpdate = () => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    const t = vid.currentTime;
+    if (t < 0.85) {
+      setPhase("FOCUS");
+    } else if (t < 1.15) {
+      setPhase("KATANA_DASH");
+    } else if (t < 1.85) {
+      setPhase("SLASH_FLASH");
+    } else if (t < 3.8) {
+      setPhase("BLOOD_SPLASH");
+    } else if (t < 6.6) {
+      setPhase("CHIBURUI");
+    } else if (t < 8.6) {
+      setPhase("SHEATHE_LOCK");
+    } else {
+      setPhase("KNOCKOUT_CROSS");
+    }
+  };
 
   // Calibrated Cinematic Katana Execution Timeline (~2.5 seconds total)
   // Character position is rock-solid still at the right end; ONLY the arm/scythe animates!
@@ -134,14 +179,21 @@ export const CombatAnimation: React.FC<CombatAnimationProps> = ({
       return;
     }
 
+    // If the live HTML5 katana execution video is playing, let its onTimeUpdate & onEnded drive the timeline
+    if (videoPlaying) {
+      return;
+    }
+
     const startTime = Date.now();
     let animId: number;
 
     let triggeredUnsheathe = false;
+    let triggeredDash = false;
     let triggeredSlice = false;
     let triggeredBlood = false;
     let triggeredChiburui = false;
     let triggeredSheathe = false;
+    let triggeredKnockout = false;
 
     const tick = () => {
       const elapsed = Date.now() - startTime;
@@ -158,6 +210,10 @@ export const CombatAnimation: React.FC<CombatAnimationProps> = ({
         const rawProg = (elapsed - T_LOCK) / (T_DASH - T_LOCK);
         const clamped = Math.min(1.0, Math.max(0.0, rawProg));
         setDashProgress(easeDash(clamped));
+        if (!triggeredDash) {
+          triggeredDash = true;
+          soundManager.playThunderDashBurst();
+        }
       } else if (elapsed < T_SLASH) {
         setPhase("SLASH_FLASH");
         setDashProgress(1.0);
@@ -186,6 +242,10 @@ export const CombatAnimation: React.FC<CombatAnimationProps> = ({
         }
       } else if (elapsed < T_KNOCKOUT) {
         setPhase("KNOCKOUT_CROSS");
+        if (!triggeredKnockout) {
+          triggeredKnockout = true;
+          soundManager.playKnockoutStampSlam();
+        }
       } else if (elapsed < T_RESOLVE) {
         setPhase("RESOLVE");
       } else {
@@ -201,7 +261,7 @@ export const CombatAnimation: React.FC<CombatAnimationProps> = ({
     return () => {
       if (animId) cancelAnimationFrame(animId);
     };
-  }, [fixedPhase, finish, prefersReducedMotion]);
+  }, [fixedPhase, finish, prefersReducedMotion, videoPlaying]);
 
   // Normalized phase flags
   const isFocus = phase === "FOCUS" || phase === "NOTICE";
@@ -245,105 +305,284 @@ export const CombatAnimation: React.FC<CombatAnimationProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#15110E]/85 backdrop-blur-md p-3 sm:p-6 select-none animate-in fade-in duration-200 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#1C1917]/85 backdrop-blur-md p-3 sm:p-6 select-none animate-in fade-in duration-200 overflow-y-auto"
       role="dialog"
       aria-modal="true"
     >
-      <div className="w-full max-w-3xl bg-[#1C1713] border-2 border-[#4A3A2D] rounded-3xl p-4 sm:p-7 text-center shadow-2xl relative my-auto animate-in zoom-in-95 duration-200 text-[#FFFDF8]">
+      <div className="w-full max-w-4xl bg-[#FAF4E6] border-4 border-[#1C1917] shadow-[10px_10px_0_#1C1917] p-4 sm:p-6 text-center relative my-auto animate-in zoom-in-95 duration-200 text-[#1C1917]">
         {/* Skip button in corner */}
         {!isResolve && (
           <button
             onClick={finish}
-            className="absolute top-4 right-4 text-xs font-fredoka font-semibold text-[#D4C5B3] hover:text-[#FFFDF8] bg-[#2C241E] hover:bg-[#3D3025] px-3.5 py-1 rounded-full border border-[#5A4839] transition-colors cursor-pointer z-30"
+            className="cartoon-btn absolute top-3 right-3 text-xs font-bangers tracking-wider uppercase text-[#1C1917] bg-[#E5C467] hover:bg-[#EDD07A] px-3.5 py-1 cursor-pointer z-30"
           >
             Skip ⏩
           </button>
         )}
 
-        {/* Duel Execution Header */}
-        <div className="mb-2">
-          <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-fredoka font-bold uppercase tracking-widest px-3.5 py-1 rounded-full bg-red-950/70 border border-red-700/60 text-red-300 shadow-xs">
+        {/* Duel Execution Comic Header Ribbon */}
+        <div className="mb-2 flex items-center justify-center">
+          <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bangers uppercase tracking-widest px-4 py-1 bg-[#1C1917] border-2 border-[#1C1917] shadow-[3px_3px_0_#C85A48] text-[#E5C467] -skew-x-6">
             <span>🗡️</span>
-            <span>Katana Execution • Swift Shadow Dash</span>
+            <span>Katana Execution • Manga Samurai Finisher</span>
           </span>
         </div>
 
         {/* Subtitle */}
-        <p className="text-xs sm:text-sm font-fredoka text-[#D4C5B3]/90 mb-3 px-4">
-          <strong className="text-red-400 font-bold">{shooterName}</strong> ({shooterPosition}) unleashes swift katana slice on{" "}
-          <strong className="text-amber-200 font-bold">{victimName}</strong> ({victimPosition} • Cell #{targetCellValue} - {victimChar.name})!
+        <p className="text-xs sm:text-sm font-bold text-[#1C1917] mb-3 px-4">
+          <strong className="bg-[#1C1917] text-[#E5C467] px-1.5 py-0.5 font-bangers tracking-wider uppercase">{shooterName}</strong> ({shooterPosition}) executes katana slash on{" "}
+          <strong className="bg-[#C85A48] text-[#FAF4E6] px-1.5 py-0.5 font-bangers tracking-wider uppercase">{victimName}</strong> ({victimPosition} • Cell #{targetCellValue} - {victimChar.name})!
         </p>
 
-        {/* CINEMATIC ARENA CANVAS */}
-        <div className="relative w-full aspect-[8/3.8] max-h-[380px] bg-[#1E1712] border-2 border-[#4A392A] rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
-          {/* Atmospheric Stage Illumination & Spotlight Beam on Center Target */}
+        {/* CINEMATIC MANGA SAMURAI ARENA CANVAS */}
+        <div className="relative w-full aspect-video max-h-[420px] bg-[#161B1F] border-4 border-[#1C1917] shadow-[6px_6px_0_#1C1917] overflow-hidden flex items-center justify-center">
+          {/* Primary Reference Video Playback (/sfx/katana-execution.mp4 = gemini_generated_video_b4b6dfd9.mp4) */}
+          {isLivePlayback && (
+            <video
+              ref={videoRef}
+              src="/sfx/katana-execution.mp4"
+              autoPlay
+              playsInline
+              onTimeUpdate={handleVideoTimeUpdate}
+              onEnded={finish}
+              onError={() => setVideoPlaying(false)}
+              data-testid="katana-execution-video"
+              className="absolute inset-0 w-full h-full object-cover z-20"
+            />
+          )}
+
+          {/* Moody Smoky Dojo Stage / Stark White Manga Impact Frame (00:01 of Video) */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background:
-                "radial-gradient(ellipse 700px 320px at 50% 65%, rgba(190, 150, 120, 0.22) 0%, rgba(120, 80, 60, 0.12) 50%, rgba(20, 15, 12, 0.95) 100%)"
+              background: isSlash
+                ? "#F5F5F5"
+                : "radial-gradient(ellipse 720px 340px at 50% 65%, rgba(56, 68, 78, 0.38) 0%, rgba(30, 37, 43, 0.72) 55%, rgba(15, 19, 23, 0.98) 100%)"
             }}
           />
 
-          {/* SVG CINEMATIC STAGE */}
+          {/* SVG CINEMATIC STAGE (Visible in QA phase views or before video frame renders) */}
           <svg
             viewBox="0 0 800 360"
-            className="w-full h-full overflow-visible"
+            className="w-full h-full overflow-visible relative z-10"
             style={{ shapeRendering: "geometricPrecision" }}
           >
+            {/* Stark White Manga Speed-Line Impact Frame & Katakana (Matching Frame 00:01 of Video) */}
+            {isSlash && (
+              <g id="manga-white-impact-frame">
+                <rect x="0" y="0" width="800" height="360" fill="#F5F5F5" />
+                {/* Radiating Black Manga Speed Lines from Impact Center (420, 195) */}
+                {Array.from({ length: 28 }).map((_, idx) => {
+                  const angle = (idx / 28) * Math.PI * 2;
+                  const rInner = 95 + (idx % 3) * 20;
+                  const x1 = 420 + Math.cos(angle) * rInner;
+                  const y1 = 195 + Math.sin(angle) * rInner;
+                  const x2 = 420 + Math.cos(angle) * 520;
+                  const y2 = 195 + Math.sin(angle) * 520;
+                  return (
+                    <line
+                      key={idx}
+                      x1={x1}
+                      y1={y1}
+                      x2={x2}
+                      y2={y2}
+                      stroke="#0F1215"
+                      strokeWidth={idx % 2 === 0 ? "4.5" : "2.2"}
+                    />
+                  );
+                })}
+                {/* Bold Black Manga Katakana SFX ("ドッ" / "ズバァ" Matching Frame 00:01) */}
+                <text
+                  x="110"
+                  y="145"
+                  fontSize="74"
+                  fontWeight="900"
+                  fill="#0F1215"
+                  transform="rotate(-14 110 145)"
+                >
+                  ドッ
+                </text>
+                <text
+                  x="650"
+                  y="305"
+                  fontSize="58"
+                  fontWeight="900"
+                  fill="#0F1215"
+                  transform="rotate(-10 650 305)"
+                >
+                  ッ!!
+                </text>
+              </g>
+            )}
             <defs>
-              {/* Localized White-Red Impact Flash Glow (No full-screen washout) */}
+              {/* Localized White-Red Impact Flash Glow */}
               <radialGradient id="localizedFlashGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.95" />
-                <stop offset="30%" stopColor="#FFF1F2" stopOpacity="0.85" />
-                <stop offset="60%" stopColor="#FF4D6D" stopOpacity="0.55" />
-                <stop offset="85%" stopColor="#D90429" stopOpacity="0.2" />
+                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.98" />
+                <stop offset="28%" stopColor="#FFD000" stopOpacity="0.9" />
+                <stop offset="58%" stopColor="#FF0054" stopOpacity="0.65" />
+                <stop offset="85%" stopColor="#D90429" stopOpacity="0.25" />
                 <stop offset="100%" stopColor="#D90429" stopOpacity="0" />
               </radialGradient>
+
+              {/* Delayed Knockout Shockwave Pillar Gradient */}
+              <linearGradient id="shockwavePillarGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                <stop offset="0%" stopColor="#FFD000" stopOpacity="0.85" />
+                <stop offset="45%" stopColor="#E62E2D" stopOpacity="0.65" />
+                <stop offset="100%" stopColor="#FF0054" stopOpacity="0" />
+              </linearGradient>
 
               {/* Razor Katana Slash Trail Gradient */}
               <linearGradient id="slashTrailGlow" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0" />
-                <stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.95" />
-                <stop offset="60%" stopColor="#FF0054" stopOpacity="0.8" />
+                <stop offset="20%" stopColor="#FFD000" stopOpacity="0.95" />
+                <stop offset="50%" stopColor="#FFFFFF" stopOpacity="1" />
+                <stop offset="75%" stopColor="#FF0054" stopOpacity="0.9" />
                 <stop offset="100%" stopColor="#D90429" stopOpacity="0" />
               </linearGradient>
 
               {/* Katana Dash Speed Motion Blur */}
               <linearGradient id="dashTrail" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#D90429" stopOpacity="0" />
-                <stop offset="60%" stopColor="#FF0054" stopOpacity="0.35" />
-                <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.75" />
+                <stop offset="45%" stopColor="#FFD000" stopOpacity="0.4" />
+                <stop offset="75%" stopColor="#FF0054" stopOpacity="0.65" />
+                <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.9" />
               </linearGradient>
             </defs>
 
-            {/* Floor Baseline & Stage Floor */}
-            <rect x="0" y="280" width="800" height="80" fill="#16110D" />
-            <line x1="20" y1="280" x2="780" y2="280" stroke="#7A6048" strokeWidth="2.5" />
-            <line x1="100" y1="282" x2="700" y2="282" stroke="#E63946" strokeWidth="1.2" opacity="0.6" />
+            {/* Radial Comic Action Speed Lines in Background */}
+            <g id="comic-background-speed-lines" opacity={isSlash || isDash ? "0.42" : "0.16"}>
+              <line x1="0" y1="20" x2="260" y2="140" stroke="#FFD000" strokeWidth="2" />
+              <line x1="0" y1="90" x2="220" y2="175" stroke="#FF0054" strokeWidth="1.5" />
+              <line x1="800" y1="30" x2="540" y2="145" stroke="#00D4FF" strokeWidth="2" />
+              <line x1="800" y1="110" x2="570" y2="185" stroke="#FFD000" strokeWidth="1.5" />
+              <line x1="0" y1="260" x2="240" y2="225" stroke="#FFFFFF" strokeWidth="1.5" />
+              <line x1="800" y1="250" x2="560" y2="215" stroke="#FF0054" strokeWidth="2" />
+            </g>
 
-            {/* Dash Ghost Afterimages & Directional Speed Lines */}
+            {/* Floor Baseline & Stage Floor */}
+            <rect x="0" y="280" width="800" height="80" fill="#0B0807" />
+            <line x1="10" y1="280" x2="790" y2="280" stroke="#FFD000" strokeWidth="3" />
+            <line x1="60" y1="284" x2="740" y2="284" stroke="#E62E2D" strokeWidth="2" opacity="0.85" />
+
+            {/* ======================================================== */}
+            {/* PHASE 1 (FOCUS): DIAGONAL COMIC EYE CUT-IN BANNER        */}
+            {/* ======================================================== */}
+            {isFocus && (
+              <g id="comic-focus-eye-cutin">
+                {/* Skewed Black & Crimson Cut-In Strip Across Top Stage */}
+                <polygon
+                  points="40,14 520,14 495,68 15,68"
+                  fill="#0A0A0A"
+                  stroke="#FFD000"
+                  strokeWidth="3"
+                />
+                <polygon
+                  points="46,18 280,18 265,64 25,64"
+                  fill="#D90429"
+                />
+                {/* Menacing Close-Up Glowing Slitted Warrior Eyes */}
+                <path d="M 75 45 Q 100 50 125 34 Q 100 32 75 45 Z" fill="#FFFFFF" />
+                <path d="M 145 41 Q 170 46 198 29 Q 170 28 145 41 Z" fill="#FFFFFF" />
+                <line x1="185" y1="31" x2="235" y2="19" stroke="#00D4FF" strokeWidth="2.5" strokeLinecap="round" />
+                {/* Cut-In Callout Lettering */}
+                <text
+                  x="380"
+                  y="49"
+                  textAnchor="middle"
+                  fill="#FFD000"
+                  stroke="#0A0A0A"
+                  strokeWidth="2"
+                  paintOrder="stroke"
+                  fontSize="22"
+                  fontWeight="900"
+                  fontFamily="Bangers, Impact, sans-serif"
+                  letterSpacing="2"
+                >
+                  ⚡ TARGET LOCKED: CELL #{targetCellValue}!
+                </text>
+              </g>
+            )}
+
+            {/* ======================================================== */}
+            {/* PHASE 2 (KATANA_DASH): SUPERSONIC LIGHTNING TELEPORT     */}
+            {/* ======================================================== */}
             {isDash && !prefersReducedMotion && (
               <g id="dash-afterimages-and-speedlines">
+                {/* Launch Sonic Boom Ring at X=80 */}
+                <ellipse
+                  cx="85"
+                  cy="220"
+                  rx="18"
+                  ry="48"
+                  fill="none"
+                  stroke="#FFD000"
+                  strokeWidth="3"
+                  strokeDasharray="8 4"
+                  opacity="0.75"
+                />
+
                 {/* Motion Blur Trail Beam */}
                 <rect
-                  x={Math.max(40, killerX - 180)}
-                  y="190"
-                  width={Math.min(180, Math.max(20, killerX - 40))}
-                  height="85"
+                  x={Math.max(40, killerX - 220)}
+                  y="185"
+                  width={Math.min(220, Math.max(20, killerX - 40))}
+                  height="90"
                   fill="url(#dashTrail)"
-                  opacity="0.65"
+                  opacity="0.78"
+                />
+
+                {/* Crackling Golden & Cyan Lightning Bolts Along Dash Vector */}
+                <polyline
+                  points={`${Math.max(45, killerX - 200)},205 ${Math.max(60, killerX - 145)},192 ${Math.max(75, killerX - 95)},214 ${killerX - 25},198`}
+                  fill="none"
+                  stroke="#FFD000"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="miter"
+                />
+                <polyline
+                  points={`${Math.max(45, killerX - 180)},248 ${Math.max(65, killerX - 120)},262 ${Math.max(80, killerX - 70)},240 ${killerX - 20},254`}
+                  fill="none"
+                  stroke="#00D4FF"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="miter"
                 />
 
                 {/* Directional Horizontal Speed Lines */}
-                <line x1={Math.max(30, killerX - 160)} y1="210" x2={killerX - 20} y2="210" stroke="#E63946" strokeWidth="2.5" strokeDasharray="16 8" opacity="0.6" />
-                <line x1={Math.max(30, killerX - 220)} y1="230" x2={killerX - 35} y2="230" stroke="#FFFFFF" strokeWidth="2" strokeDasharray="24 10" opacity="0.75" />
-                <line x1={Math.max(30, killerX - 180)} y1="250" x2={killerX - 25} y2="250" stroke="#FF0054" strokeWidth="2.5" strokeDasharray="20 10" opacity="0.6" />
-                <line x1={Math.max(30, killerX - 130)} y1="268" x2={killerX - 15} y2="268" stroke="#E63946" strokeWidth="1.8" strokeDasharray="12 6" opacity="0.5" />
+                <line x1={Math.max(30, killerX - 160)} y1="210" x2={killerX - 20} y2="210" stroke="#E63946" strokeWidth="2.5" strokeDasharray="16 8" opacity="0.75" />
+                <line x1={Math.max(30, killerX - 220)} y1="230" x2={killerX - 35} y2="230" stroke="#FFFFFF" strokeWidth="2.4" strokeDasharray="24 10" opacity="0.88" />
+                <line x1={Math.max(30, killerX - 180)} y1="250" x2={killerX - 25} y2="250" stroke="#FFD000" strokeWidth="2.5" strokeDasharray="20 10" opacity="0.8" />
+                <line x1={Math.max(30, killerX - 130)} y1="268" x2={killerX - 15} y2="268" stroke="#E63946" strokeWidth="1.8" strokeDasharray="12 6" opacity="0.65" />
+
+                {/* Skewed Comic "ZWHAM!!" Onomatopoeia Callout */}
+                <g transform={`translate(${Math.min(540, Math.max(120, killerX - 90))}, 135) rotate(-8)`}>
+                  <polygon
+                    points="0,0 118,-6 110,28 -8,28"
+                    fill="#FFD000"
+                    stroke="#0A0A0A"
+                    strokeWidth="3"
+                  />
+                  <text
+                    x="55"
+                    y="20"
+                    textAnchor="middle"
+                    fill="#E62E2D"
+                    stroke="#0A0A0A"
+                    strokeWidth="1.5"
+                    paintOrder="stroke"
+                    fontSize="20"
+                    fontWeight="900"
+                    fontFamily="Bangers, Impact, sans-serif"
+                    letterSpacing="1.5"
+                  >
+                    ZWHAM!!
+                  </text>
+                </g>
 
                 {/* Multiple Fading Ghost Afterimages */}
                 {killerX - 110 > 40 && (
-                  <g transform={`translate(${killerX - 110}, 160) scale(0.92)`} opacity="0.14">
+                  <g transform={`translate(${killerX - 110}, 160) scale(0.92)`} opacity="0.18">
                     <HandDrawnStickman
                       characterId={shooterChar.id}
                       progress={5}
@@ -386,25 +625,90 @@ export const CombatAnimation: React.FC<CombatAnimationProps> = ({
             )}
 
             {/* ======================================================== */}
-            {/* SHARP DIAGONAL KATANA TRAIL ACROSS THE ARENA             */}
+            {/* DIMENSION-CLEAVING X-SLASH & COMIC ONOMATOPOEIA          */}
             {/* ======================================================== */}
             {(isSlash || isBlood) && (
               <g id="sharp-katana-trail" pointerEvents="none">
+                {/* Primary Arena-Spanning Diagonal Cleave */}
                 <path
-                  d="M 290 165 Q 400 215 510 265"
+                  d="M 160 110 Q 400 215 640 305"
+                  stroke="url(#slashTrailGlow)"
+                  strokeWidth="12"
+                  strokeLinecap="round"
+                  opacity={isSlash ? 0.98 : 0.65}
+                />
+                <path
+                  d="M 180 118 L 620 298"
+                  stroke="#FFFFFF"
+                  strokeWidth="4.5"
+                  strokeLinecap="round"
+                  opacity={isSlash ? 1.0 : 0.5}
+                />
+                {/* Secondary Cross-Dimension Shear Beam */}
+                <path
+                  d="M 260 290 Q 400 215 545 125"
                   stroke="url(#slashTrailGlow)"
                   strokeWidth="8"
                   strokeLinecap="round"
-                  opacity={isSlash ? 0.95 : 0.55}
+                  opacity={isSlash ? 0.92 : 0.45}
                 />
                 <path
-                  d="M 300 168 L 500 262"
-                  stroke="#FFFFFF"
-                  strokeWidth="3.2"
+                  d="M 275 282 L 530 132"
+                  stroke="#FFD000"
+                  strokeWidth="3"
                   strokeLinecap="round"
-                  opacity={isSlash ? 1.0 : 0.45}
-                  filter="drop-shadow(0 0 3px #FF0054)"
+                  opacity={isSlash ? 0.95 : 0.4}
                 />
+
+                {/* Giant Extruded 3D Comic Sound-Effect Lettering ("KRA-SLASH!!") */}
+                {isSlash && (
+                  <g transform="translate(400, 72) rotate(-5)">
+                    <polygon
+                      points="-145,-34 145,-40 135,16 -155,14"
+                      fill="#0A0A0A"
+                      transform="translate(5, 5)"
+                    />
+                    <polygon
+                      points="-145,-34 145,-40 135,16 -155,14"
+                      fill="#FFD000"
+                      stroke="#0A0A0A"
+                      strokeWidth="3.5"
+                    />
+                    <text
+                      x="0"
+                      y="2"
+                      textAnchor="middle"
+                      fill="#E62E2D"
+                      stroke="#0A0A0A"
+                      strokeWidth="4"
+                      paintOrder="stroke"
+                      fontSize="34"
+                      fontWeight="900"
+                      fontFamily="Bangers, Impact, sans-serif"
+                      letterSpacing="3"
+                    >
+                      KRA-SLASH!!
+                    </text>
+                  </g>
+                )}
+              </g>
+            )}
+
+            {/* ======================================================== */}
+            {/* DELAYED FINISHER SHOCKWAVE PILLAR (ON KNOCKOUT_CROSS)    */}
+            {/* ======================================================== */}
+            {(isKnockout || isResolve) && (
+              <g id="delayed-finisher-shockwave-pillar" pointerEvents="none">
+                <rect
+                  x="335"
+                  y="20"
+                  width="130"
+                  height="260"
+                  fill="url(#shockwavePillarGrad)"
+                  opacity={isKnockout ? "0.85" : "0.45"}
+                />
+                <ellipse cx="400" cy="280" rx="95" ry="14" fill="none" stroke="#FFD000" strokeWidth="3.5" />
+                <ellipse cx="400" cy="280" rx="65" ry="8" fill="#E62E2D" opacity="0.6" />
               </g>
             )}
 
@@ -534,6 +838,36 @@ export const CombatAnimation: React.FC<CombatAnimationProps> = ({
                       SHING!
                     </text>
                   </g>
+                  {/* Skewed Comic "OBLITERATED! K.O.!" Finisher Stamp on Knockout */}
+                  {(isKnockout || isResolve) && (
+                    <g transform="translate(50, -32) rotate(-7)">
+                      <rect x="-82" y="-22" width="168" height="36" fill="#0A0A0A" transform="translate(4, 4)" />
+                      <rect
+                        x="-82"
+                        y="-22"
+                        width="168"
+                        height="36"
+                        fill="#E62E2D"
+                        stroke="#FFD000"
+                        strokeWidth="3"
+                      />
+                      <text
+                        x="2"
+                        y="3"
+                        fontSize="20"
+                        fontWeight="900"
+                        fontFamily="Bangers, Impact, sans-serif"
+                        letterSpacing="2"
+                        fill="#FFFDF5"
+                        stroke="#0A0A0A"
+                        strokeWidth="3"
+                        paintOrder="stroke"
+                        textAnchor="middle"
+                      >
+                        💥 OBLITERATED! K.O.!
+                      </text>
+                    </g>
+                  )}
                 </g>
               )}
             </g>
@@ -585,6 +919,26 @@ export const CombatAnimation: React.FC<CombatAnimationProps> = ({
                   <rect x="-10" y="-12" width="30" height="18" rx="4" fill="#D90429" stroke="#FFFDF8" strokeWidth="1.5" />
                   <text x="5" y="1" fontSize="11" fontWeight="bold" fill="#FFFDF8" textAnchor="middle">
                     !
+                  </text>
+                </g>
+              )}
+
+              {/* Chiburui "SWISH!" Comic Callout */}
+              {isChiburui && (
+                <g transform="translate(45, -18) rotate(-6)">
+                  <rect x="-38" y="-14" width="76" height="22" fill="#FFD000" stroke="#0A0A0A" strokeWidth="2.5" />
+                  <text x="0" y="2" fontSize="13" fontWeight="900" fontFamily="Bangers, Impact, sans-serif" letterSpacing="1" fill="#0A0A0A" textAnchor="middle">
+                    SWISH!
+                  </text>
+                </g>
+              )}
+
+              {/* Sheathe Lock "*CLACK!*" & Blinding Golden Star-Flare */}
+              {isSheathe && (
+                <g transform="translate(45, -18) rotate(5)">
+                  <rect x="-42" y="-14" width="84" height="22" fill="#00D4FF" stroke="#0A0A0A" strokeWidth="2.5" />
+                  <text x="0" y="2" fontSize="13" fontWeight="900" fontFamily="Bangers, Impact, sans-serif" letterSpacing="1" fill="#0A0A0A" textAnchor="middle">
+                    *CLACK!*
                   </text>
                 </g>
               )}
@@ -686,36 +1040,42 @@ export const CombatAnimation: React.FC<CombatAnimationProps> = ({
           </svg>
         </div>
 
-        {/* Combat Status Footer */}
-        <div className="mt-3 flex items-center justify-between px-2 text-xs font-fredoka text-[#D4C5B3]">
-          <div>
-            <span>Execution Stage: </span>
-            <span className="font-bold text-red-400 uppercase tracking-wider">
+        {/* Combat Status Footer & Comic "TO BE CONTINUED..." Ribbon */}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-2 text-xs font-bold text-[#0A0A0A]">
+          <div className="flex items-center gap-2">
+            <span className="bg-[#0A0A0A] text-[#FFFDF5] font-mono text-[10px] px-2 py-0.5 uppercase">
+              EXECUTION PANEL
+            </span>
+            <span className="font-bangers text-base text-[#E62E2D] uppercase tracking-wider">
               {isFocus
-                ? "🎯 Target Locked"
+                ? "🎯 Target Locked — Awakening"
                 : isDash
-                ? "⚡ Lightning Dash"
+                ? "⚡ God-Speed Thunder Dash"
                 : isSlash
-                ? "⚔️ Razor Katana Slice"
+                ? "⚔️ Dimension-Cleaving Katana Slash!"
                 : isBlood
-                ? "🩸 Visceral Screen Blood Splash"
+                ? "🩸 Crimson Ink Geyser & Lens Splatter"
                 : isChiburui
-                ? "🌀 Chiburui (Blood Flick from Scythe)"
+                ? "🌀 Chiburui (Master Blood Flick)"
                 : isSheathe
-                ? "🗡️ Sheathe Lock (*CLACK*)"
+                ? "🗡️ Sheathe Lock (*KLICK-CLACK—TING!*)"
                 : isKnockout
-                ? "🏆 K.O. Confirmed"
-                : "✨ Execution Complete"}
+                ? "💥 Delayed Shockwave — K.O. Confirmed!"
+                : "✨ Majestic Execution Complete"}
             </span>
           </div>
 
-          {isResolve && (
+          {isResolve ? (
             <button
               onClick={finish}
-              className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-fredoka font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
+              className="cartoon-btn px-5 py-2 bg-[#FFD000] hover:bg-[#FFE033] text-[#0A0A0A] font-bangers tracking-wider text-base uppercase cursor-pointer"
             >
               Continue Folio Battle ➔
             </button>
+          ) : (
+            <span className="bg-[#E91E63] text-[#FFFDF5] border-2 border-[#0A0A0A] px-2.5 py-0.5 font-bangers tracking-widest text-xs uppercase -skew-x-6">
+              TO BE CONTINUED...
+            </span>
           )}
         </div>
       </div>

@@ -35,11 +35,24 @@ export default {
           mint: "#38B000",
           plum: "#241938",
           "plum-dark": "#191128"
+        },
+        comic: {
+          ink: "#0A0A0A",
+          paper: "#FFFDF5",
+          yellow: "#FFD000",
+          "yellow-light": "#FFF3A1",
+          cyan: "#00D4FF",
+          red: "#E62E2D",
+          magenta: "#E91E63",
+          pink: "#F4B8C4",
+          slate: "#2A3B4C"
         }
       },
       fontFamily: {
-        fredoka: ["Fredoka", "Quicksand", "sans-serif"],
-        sans: ["Quicksand", "Fredoka", "ui-sans-serif", "system-ui", "sans-serif"],
+        bangers: ["Bangers", "Fredoka", "Impact", "sans-serif"],
+        comic: ["Comic Neue", "Fredoka", "Quicksand", "sans-serif"],
+        fredoka: ["Bangers", "Fredoka", "Quicksand", "sans-serif"],
+        sans: ["Comic Neue", "Quicksand", "Fredoka", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "Courier New", "monospace"]
       },
       boxShadow: {

@@ -561,158 +561,49 @@ class SoundManager {
   }
 
   /**
-   * Realistic metallic katana unsheathe / draw sound
+   * Plays a real recorded audio file from /sfx/*.mp3 with volume control.
+   * Falls back silently in headless test environments (happy-dom) where HTMLAudioElement playback is stubbed.
    */
-  public playKatanaUnsheathe(): void {
-    const vol = this.getEffectiveVolume();
-    if (vol <= 0) return;
-    const ctx = this.getAudioContext();
-    if (!ctx) return;
+  private playSample(path: string, volumeMultiplier = 1.0, playbackRate = 1.0): boolean {
+    const vol = this.getEffectiveVolume("combat");
+    if (vol <= 0) return false;
+    if (typeof window === "undefined" || typeof window.Audio !== "function") return false;
 
-    // 1. High metallic friction draw ring
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(1400, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(3400, ctx.currentTime + 0.18);
-
-    gain.gain.setValueAtTime(0, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(vol * 0.45, ctx.currentTime + 0.04);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.22);
-
-    // 2. High blade-throat friction noise
-    const bufferSize = Math.floor(ctx.sampleRate * 0.12);
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * (i / bufferSize));
+    try {
+      const audio = new window.Audio(path);
+      audio.volume = Math.max(0, Math.min(1, vol * volumeMultiplier));
+      audio.playbackRate = playbackRate;
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(() => {
+          // Ignore autoplay restrictions or headless test environment rejections
+        });
+      }
+      return true;
+    } catch {
+      return false;
     }
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-    const filter = ctx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.frequency.setValueAtTime(2800, ctx.currentTime);
-    filter.frequency.exponentialRampToValueAtTime(5200, ctx.currentTime + 0.12);
-    filter.Q.setValueAtTime(4.0, ctx.currentTime);
-
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(vol * 0.35, ctx.currentTime);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-
-    noise.connect(filter);
-    filter.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
-    noise.start();
   }
 
   /**
-   * Visceral, damn immersive 4-layer katana flesh slice:
-   * Layer 1: High-velocity razor blade whoosh
-   * Layer 2: Dual piercing steel harmonic ring (2850Hz & 4200Hz)
-   * Layer 3: Wet flesh tearing / cleaving squelch (frequency-modulated resonant noise)
-   * Layer 4: Deep sub-bass body impact thud (140Hz -> 38Hz)
+   * Real recorded katana unsheathe / draw sound (/sfx/katana-draw.mp3)
+   */
+  public playKatanaUnsheathe(): void {
+    this.playSample("/sfx/katana-draw.mp3", 0.95, 1.0);
+  }
+
+  /**
+   * Real recorded katana rush swipe sound (/sfx/katana-swipe.mp3)
+   */
+  public playThunderDashBurst(): void {
+    this.playSample("/sfx/katana-swipe.mp3", 0.9, 1.05);
+  }
+
+  /**
+   * Real recorded katana double slash attack sound (/sfx/katana-slash.mp3)
    */
   public playRealisticFleshSlice(): void {
-    const vol = this.getEffectiveVolume();
-    if (vol <= 0) return;
-    const ctx = this.getAudioContext();
-    if (!ctx) return;
-
-    const t = ctx.currentTime;
-
-    // Layer 1: High-speed slicing blade whoosh
-    const whooshSize = Math.floor(ctx.sampleRate * 0.16);
-    const whooshBuffer = ctx.createBuffer(1, whooshSize, ctx.sampleRate);
-    const whooshData = whooshBuffer.getChannelData(0);
-    for (let i = 0; i < whooshSize; i++) {
-      whooshData[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * (i / whooshSize));
-    }
-    const whooshSource = ctx.createBufferSource();
-    whooshSource.buffer = whooshBuffer;
-
-    const whooshFilter = ctx.createBiquadFilter();
-    whooshFilter.type = "bandpass";
-    whooshFilter.frequency.setValueAtTime(5500, t);
-    whooshFilter.frequency.exponentialRampToValueAtTime(1200, t + 0.15);
-    whooshFilter.Q.setValueAtTime(3.8, t);
-
-    const whooshGain = ctx.createGain();
-    whooshGain.gain.setValueAtTime(vol * 0.7, t);
-    whooshGain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
-
-    whooshSource.connect(whooshFilter);
-    whooshFilter.connect(whooshGain);
-    whooshGain.connect(ctx.destination);
-    whooshSource.start(t);
-
-    // Layer 2: Dual piercing steel harmonic ring
-    const ringFreqs = [2850, 4200];
-    ringFreqs.forEach((freq) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(freq, t);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.88, t + 0.38);
-
-      gain.gain.setValueAtTime(vol * 0.45, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.38);
-    });
-
-    // Layer 3: Wet flesh tearing / cleaving squelch (FM modulated lowpass noise)
-    const fleshSize = Math.floor(ctx.sampleRate * 0.22);
-    const fleshBuffer = ctx.createBuffer(1, fleshSize, ctx.sampleRate);
-    const fleshData = fleshBuffer.getChannelData(0);
-    for (let i = 0; i < fleshSize; i++) {
-      // Frequency-modulated organic squelch profile
-      const env = Math.exp(-i / (ctx.sampleRate * 0.06));
-      const mod = 1 + 0.4 * Math.sin(i / 45) + 0.25 * Math.sin(i / 110);
-      fleshData[i] = (Math.random() * 2 - 1) * env * mod;
-    }
-    const fleshSource = ctx.createBufferSource();
-    fleshSource.buffer = fleshBuffer;
-
-    const fleshFilter = ctx.createBiquadFilter();
-    fleshFilter.type = "lowpass";
-    fleshFilter.frequency.setValueAtTime(750, t);
-    fleshFilter.frequency.linearRampToValueAtTime(220, t + 0.2);
-    fleshFilter.Q.setValueAtTime(2.2, t);
-
-    const fleshGain = ctx.createGain();
-    fleshGain.gain.setValueAtTime(vol * 0.65, t);
-    fleshGain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
-
-    fleshSource.connect(fleshFilter);
-    fleshFilter.connect(fleshGain);
-    fleshGain.connect(ctx.destination);
-    fleshSource.start(t);
-
-    // Layer 4: Deep sub-bass body impact thud (weight & visceral punch)
-    const thudOsc = ctx.createOscillator();
-    const thudGain = ctx.createGain();
-
-    thudOsc.type = "sine";
-    thudOsc.frequency.setValueAtTime(140, t);
-    thudOsc.frequency.exponentialRampToValueAtTime(38, t + 0.16);
-
-    thudGain.gain.setValueAtTime(vol * 0.75, t);
-    thudGain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-
-    thudOsc.connect(thudGain);
-    thudGain.connect(ctx.destination);
-    thudOsc.start(t);
-    thudOsc.stop(t + 0.18);
+    this.playSample("/sfx/katana-slash.mp3", 1.0, 1.0);
   }
 
   /**
@@ -723,77 +614,10 @@ class SoundManager {
   }
 
   /**
-   * Heavy wet impact of blood splashing directly onto the camera lens / screen:
-   * Heavy viscous liquid slap + micro droplet splatter + running drip sound
+   * Real recorded secondary katana follow-through slash (/sfx/katana-swipe.mp3)
    */
   public playScreenBloodSlap(): void {
-    const vol = this.getEffectiveVolume();
-    if (vol <= 0) return;
-    const ctx = this.getAudioContext();
-    if (!ctx) return;
-
-    const t = ctx.currentTime;
-
-    // 1. Wet heavy liquid slap onto glass
-    const slapOsc = ctx.createOscillator();
-    const slapGain = ctx.createGain();
-    slapOsc.type = "sine";
-    slapOsc.frequency.setValueAtTime(220, t);
-    slapOsc.frequency.exponentialRampToValueAtTime(42, t + 0.14);
-
-    slapGain.gain.setValueAtTime(vol * 0.7, t);
-    slapGain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
-
-    slapOsc.connect(slapGain);
-    slapGain.connect(ctx.destination);
-    slapOsc.start(t);
-    slapOsc.stop(t + 0.16);
-
-    // 2. Viscous liquid splatter & spray burst
-    const spraySize = Math.floor(ctx.sampleRate * 0.32);
-    const sprayBuffer = ctx.createBuffer(1, spraySize, ctx.sampleRate);
-    const sprayData = sprayBuffer.getChannelData(0);
-    for (let i = 0; i < spraySize; i++) {
-      // Liquid droplet modulation with trailing runs
-      const dripEnv = Math.exp(-i / (ctx.sampleRate * 0.09)) * (1 + 0.35 * Math.sin(i / 60));
-      sprayData[i] = (Math.random() * 2 - 1) * dripEnv;
-    }
-    const spraySource = ctx.createBufferSource();
-    spraySource.buffer = sprayBuffer;
-
-    const sprayFilter = ctx.createBiquadFilter();
-    sprayFilter.type = "lowpass";
-    sprayFilter.frequency.setValueAtTime(1100, t);
-    sprayFilter.frequency.linearRampToValueAtTime(320, t + 0.3);
-
-    const sprayGain = ctx.createGain();
-    sprayGain.gain.setValueAtTime(vol * 0.6, t);
-    sprayGain.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
-
-    spraySource.connect(sprayFilter);
-    sprayFilter.connect(sprayGain);
-    sprayGain.connect(ctx.destination);
-    spraySource.start(t);
-
-    // 3. High micro-droplet clicks on glass (subtle glass contact)
-    const clickFreqs = [1800, 2400, 3100];
-    clickFreqs.forEach((freq, idx) => {
-      const clickOsc = ctx.createOscillator();
-      const clickGain = ctx.createGain();
-      const delay = 0.02 + idx * 0.025;
-
-      clickOsc.type = "sine";
-      clickOsc.frequency.setValueAtTime(freq, t + delay);
-      clickOsc.frequency.exponentialRampToValueAtTime(800, t + delay + 0.03);
-
-      clickGain.gain.setValueAtTime(vol * 0.25, t + delay);
-      clickGain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.03);
-
-      clickOsc.connect(clickGain);
-      clickGain.connect(ctx.destination);
-      clickOsc.start(t + delay);
-      clickOsc.stop(t + delay + 0.03);
-    });
+    this.playSample("/sfx/katana-swipe.mp3", 0.85, 0.92);
   }
 
   /**
@@ -804,144 +628,24 @@ class SoundManager {
   }
 
   /**
-   * Samurai Chiburui (血振るい) - Swift blade flick to cast blood off the scythe:
-   * Fast whipping air swoosh + high steel harmonic flex chime + liquid droplet snaps
+   * Real recorded katana blade flick / flourish (/sfx/katana-flick.mp3)
    */
   public playChiburuiFlick(): void {
-    const vol = this.getEffectiveVolume();
-    if (vol <= 0) return;
-    const ctx = this.getAudioContext();
-    if (!ctx) return;
-
-    const t = ctx.currentTime;
-
-    // 1. Fast whipping air swoosh
-    const swooshSize = Math.floor(ctx.sampleRate * 0.12);
-    const swooshBuffer = ctx.createBuffer(1, swooshSize, ctx.sampleRate);
-    const swooshData = swooshBuffer.getChannelData(0);
-    for (let i = 0; i < swooshSize; i++) {
-      swooshData[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * (i / swooshSize));
-    }
-    const swooshSource = ctx.createBufferSource();
-    swooshSource.buffer = swooshBuffer;
-
-    const swooshFilter = ctx.createBiquadFilter();
-    swooshFilter.type = "bandpass";
-    swooshFilter.frequency.setValueAtTime(3600, t);
-    swooshFilter.frequency.exponentialRampToValueAtTime(850, t + 0.1);
-    swooshFilter.Q.setValueAtTime(3.2, t);
-
-    const swooshGain = ctx.createGain();
-    swooshGain.gain.setValueAtTime(vol * 0.65, t);
-    swooshGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
-
-    swooshSource.connect(swooshFilter);
-    swooshFilter.connect(swooshGain);
-    swooshGain.connect(ctx.destination);
-    swooshSource.start(t);
-
-    // 2. High steel harmonic chime as the blade flexes and snaps back
-    const chimeOsc = ctx.createOscillator();
-    const chimeGain = ctx.createGain();
-    chimeOsc.type = "triangle";
-    chimeOsc.frequency.setValueAtTime(1450, t);
-    chimeOsc.frequency.exponentialRampToValueAtTime(950, t + 0.28);
-
-    chimeGain.gain.setValueAtTime(vol * 0.45, t);
-    chimeGain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-
-    chimeOsc.connect(chimeGain);
-    chimeGain.connect(ctx.destination);
-    chimeOsc.start(t);
-    chimeOsc.stop(t + 0.28);
-
-    // 3. Droplets detaching in the air (micro liquid snaps)
-    for (let i = 0; i < 3; i++) {
-      const snapOsc = ctx.createOscillator();
-      const snapGain = ctx.createGain();
-      const delay = 0.03 + i * 0.02;
-
-      snapOsc.type = "sine";
-      snapOsc.frequency.setValueAtTime(1100 - i * 150, t + delay);
-      snapOsc.frequency.exponentialRampToValueAtTime(350, t + delay + 0.025);
-
-      snapGain.gain.setValueAtTime(vol * 0.3, t + delay);
-      snapGain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.025);
-
-      snapOsc.connect(snapGain);
-      snapGain.connect(ctx.destination);
-      snapOsc.start(t + delay);
-      snapOsc.stop(t + delay + 0.025);
-    }
+    this.playSample("/sfx/katana-flick.mp3", 0.9, 1.0);
   }
 
   /**
-   * Authentic samurai sheathing sound:
-   * Smooth wooden scabbard throat friction + crisp metallic Habaki lock snap (*KLICK-CLACK*)
+   * Real recorded metallic katana lock / clash sheathe (/sfx/katana-sheathe.mp3)
    */
   public playKatanaSheathe(): void {
-    const vol = this.getEffectiveVolume();
-    if (vol <= 0) return;
-    const ctx = this.getAudioContext();
-    if (!ctx) return;
+    this.playSample("/sfx/katana-sheathe.mp3", 0.95, 1.0);
+  }
 
-    const t = ctx.currentTime;
-
-    // 1. Sliding friction into scabbard throat (saya)
-    const slideSize = Math.floor(ctx.sampleRate * 0.08);
-    const slideBuffer = ctx.createBuffer(1, slideSize, ctx.sampleRate);
-    const slideData = slideBuffer.getChannelData(0);
-    for (let i = 0; i < slideSize; i++) {
-      slideData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.03));
-    }
-    const slideSource = ctx.createBufferSource();
-    slideSource.buffer = slideBuffer;
-    const slideFilter = ctx.createBiquadFilter();
-    slideFilter.type = "bandpass";
-    slideFilter.frequency.setValueAtTime(1200, t);
-    slideFilter.frequency.exponentialRampToValueAtTime(2400, t + 0.06);
-
-    const slideGain = ctx.createGain();
-    slideGain.gain.setValueAtTime(vol * 0.35, t);
-    slideGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-
-    slideSource.connect(slideFilter);
-    slideFilter.connect(slideGain);
-    slideGain.connect(ctx.destination);
-    slideSource.start(t);
-
-    // 2. Crisp, loud Habaki/Koiguchi metallic wooden lock snap (*KLICK-CLACK*)
-    const snapDelay = 0.05;
-
-    // High metallic click
-    const clickOsc = ctx.createOscillator();
-    const clickGain = ctx.createGain();
-    clickOsc.type = "triangle";
-    clickOsc.frequency.setValueAtTime(2200, t + snapDelay);
-    clickOsc.frequency.exponentialRampToValueAtTime(450, t + snapDelay + 0.035);
-
-    clickGain.gain.setValueAtTime(vol * 0.65, t + snapDelay);
-    clickGain.gain.exponentialRampToValueAtTime(0.001, t + snapDelay + 0.045);
-
-    clickOsc.connect(clickGain);
-    clickGain.connect(ctx.destination);
-    clickOsc.start(t + snapDelay);
-    clickOsc.stop(t + snapDelay + 0.045);
-
-    // Solid wooden scabbard throat pop
-    const woodOsc = ctx.createOscillator();
-    const woodGain = ctx.createGain();
-    woodOsc.type = "sine";
-    woodOsc.frequency.setValueAtTime(850, t + snapDelay);
-    woodOsc.frequency.exponentialRampToValueAtTime(180, t + snapDelay + 0.04);
-
-    woodGain.gain.setValueAtTime(vol * 0.5, t + snapDelay);
-    woodGain.gain.exponentialRampToValueAtTime(0.001, t + snapDelay + 0.045);
-
-    woodOsc.connect(woodGain);
-    woodGain.connect(ctx.destination);
-    woodOsc.start(t + snapDelay);
-    woodOsc.stop(t + snapDelay + 0.045);
+  /**
+   * Comical Knockout Stamp Slam & Final Sword Ring (/sfx/katana-draw.mp3)
+   */
+  public playKnockoutStampSlam(): void {
+    this.playSample("/sfx/katana-draw.mp3", 0.9, 0.85);
   }
 }
 
