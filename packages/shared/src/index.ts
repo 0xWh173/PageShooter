@@ -196,3 +196,71 @@ export type ClientCommand =
       roomCode: string;
       lastKnownStateVersion: number;
     };
+
+// Authentication & User Identity Types
+export interface PublicUserProfile {
+  id: string;
+  email: string;
+  username: string;
+  avatarId: string;
+  usernameUpdatedAt: string; // ISO 8601 string
+  createdAt: string; // ISO 8601 string
+}
+
+export interface AuthResponse {
+  user: PublicUserProfile;
+  token?: string;
+}
+
+// Room & Spectator Participant Types (Phase 6.4)
+export interface RoomParticipant {
+  userId: string;
+  username: string;
+  avatarId: string;
+  role: "HOST" | "PLAYER" | "SPECTATOR";
+  connected: boolean;
+  socketId: string | null;
+  joinSequence: number; // Server-assigned monotonic sequence for tie-breaking and host migration
+  joinedAt: number;     // Server timestamp
+}
+
+export interface PublicRoomState {
+  roomId: string;
+  roomCode: string;
+  hostUserId: string;
+  phase: "WAITING" | "ACTIVE" | "PAUSED" | "COMPLETED";
+  players: RoomParticipant[];
+  spectators: RoomParticipant[];
+  playerCount: number;
+  spectatorCount: number;
+  createdAt: number;
+  expiresAt: number | null;
+  match?: MatchState | null;
+  currentCommitment?: {
+    turnNumber: number;
+    commitmentHash: string;
+  } | null;
+}
+
+export interface UserActiveRoomResolution {
+  roomId: string;
+  roomCode: string;
+  phase: "WAITING" | "ACTIVE" | "PAUSED" | "COMPLETED";
+  participation:
+    | "DISCONNECTED_PLAYER"
+    | "CONNECTED_PLAYER"
+    | "WAITING_PLAYER"
+    | "SPECTATOR"
+    | "ELIMINATED"
+    | "COMPLETED_PARTICIPANT";
+  role: "HOST" | "PLAYER" | "SPECTATOR";
+  canReconnectMatch: boolean;
+  hasActiveMatchParticipation: boolean;
+  reconnectDeadlineMs?: number;
+}
+
+// WebSocket Protocol & Schema Exports (Phase 6.6)
+export * from "./wsSchemas.js";
+
+
+

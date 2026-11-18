@@ -9,20 +9,24 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "tsc -b && npm run build:web",
+    "build": "tsc -b && npm run build:web && npm run build:server",
+    "build:server": "npm run build --workspace=@pageshooter/server",
     "build:web": "npm run build --workspace=@pageshooter/web",
+    "dev": "node tools/dev-all.js",
+    "dev:server": "npm run dev --workspace=@pageshooter/server",
     "dev:web": "npm run dev --workspace=@pageshooter/web",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "manual-test": "tsx tools/manual-simulator/src/index.ts",
     "verify:scenarios": "tsx tools/manual-simulator/src/verify-scenarios.ts",
-    "typecheck": "tsc -b && npm run typecheck --workspace=@pageshooter/web",
+    "typecheck": "tsc -b && npm run typecheck --workspace=@pageshooter/web && npm run typecheck --workspace=@pageshooter/server",
     "lint": "eslint \"packages/**/src/**/*.ts\" \"tools/**/src/**/*.ts\" \"apps/**/src/**/*.{ts,tsx}\"",
     "lint:check": "tsc -b --noEmit"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.6",
     "@vitest/coverage-v8": "^5.1.0",
@@ -33,5 +37,9 @@
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.72.1",
     "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "drizzle-kit": "0.31.11",
+    "drizzle-orm": "0.45.4"
   }
 }

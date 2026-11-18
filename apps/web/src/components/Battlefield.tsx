@@ -1,21 +1,21 @@
 import React from "react";
 import type { MatchState, CellValue } from "@pageshooter/shared";
 import { CELL_VALUES } from "@pageshooter/shared";
-import type { MatchVisualConfig } from "../anime/types.js";
+import type { MatchCharacterConfig } from "../characters/types.js";
 import { StickmanCell } from "./StickmanCell.js";
 
 interface BattlefieldProps {
   matchState: MatchState;
-  visualConfig?: MatchVisualConfig | null;
-  frame?: number;
+  characterConfig?: MatchCharacterConfig | null;
   onSelectTarget?: (targetPlayerId: string, cellValue: CellValue) => void;
+  interactiveTargeting?: boolean;
 }
 
 export const Battlefield: React.FC<BattlefieldProps> = ({
   matchState,
-  visualConfig,
-  frame = 0,
-  onSelectTarget
+  characterConfig,
+  onSelectTarget,
+  interactiveTargeting = true
 }) => {
   const currentTurnPlayerId = matchState.turn.currentPlayerId;
   const isAwaitingShot = matchState.turn.phase === "AWAITING_SHOT" && matchState.turn.pendingShot;
@@ -26,7 +26,7 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
   return (
     <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 py-2">
       {/* Outer Gameboard Frame */}
-      <div className="bg-cozy-white border-2 border-cozy-parchment rounded-2xl shadow-card overflow-hidden">
+      <div className="cartoon-card-lg bg-[#FFFDF7] overflow-hidden">
         {/* Scrollable Container for 5-10 players */}
         <div className="overflow-x-auto w-full">
           {/* Unified CSS Grid Table */}
@@ -54,8 +54,6 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
             {matchState.players.map((player) => {
               const isCurrentTurn = player.playerId === currentTurnPlayerId;
               const isEliminated = player.status === "ELIMINATED";
-              const playerVisual = visualConfig?.playerVisuals[player.playerId];
-              const packId = playerVisual?.animePackId || "dragon-ball";
 
               return (
                 <div
@@ -82,11 +80,6 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
                     >
                       {player.position}
                     </span>
-                    {packId === "dragon-ball" && (
-                      <span className="text-[9px] font-fredoka bg-orange-100 text-orange-800 font-bold px-1.5 py-0.2 rounded border border-orange-200">
-                        DBZ
-                      </span>
-                    )}
                     {isCurrentTurn && !isEliminated && (
                       <span className="text-xs text-cozy-amber-dark font-bold" title="Current Turn">
                         ⭐
@@ -95,6 +88,14 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
                     {isEliminated && (
                       <span className="text-[10px] font-fredoka font-semibold text-cozy-brown/50 bg-[#E8D8C3]/50 px-1.5 rounded">
                         Out
+                      </span>
+                    )}
+                    {!isEliminated && player.connected === false && (
+                      <span
+                        className="text-[10px] font-fredoka font-semibold text-amber-800 bg-amber-200/80 px-1.5 rounded"
+                        title="Player disconnected"
+                      >
+                        Offline
                       </span>
                     )}
                   </div>
@@ -146,14 +147,14 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
                   {matchState.players.map((player) => {
                     const isCurrentTurn = player.playerId === currentTurnPlayerId;
                     const isEliminated = player.status === "ELIMINATED";
-                    const canBeTargeted = isAwaitingShot && !isCurrentTurn && !isEliminated;
+                    const canBeTargeted =
+                      interactiveTargeting && isAwaitingShot && !isCurrentTurn && !isEliminated;
                     const cell = player.cells[val];
                     const hasBullet = isCurrentTurn && activeBulletCell === val;
                     const targetable = canBeTargeted && !cell.destroyed;
 
-                    const playerVisual = visualConfig?.playerVisuals[player.playerId];
-                    const packId = playerVisual?.animePackId || "dragon-ball";
-                    const characterId = playerVisual?.characterAssignments[val];
+                    const playerConfig = characterConfig?.playerCharacters[player.playerId];
+                    const characterId = playerConfig?.characterAssignments[val] || "barnaby";
 
                     return (
                       <div
@@ -175,9 +176,7 @@ export const Battlefield: React.FC<BattlefieldProps> = ({
                           isShooter={isCurrentTurn}
                           hasActiveBullet={hasBullet}
                           isTargetable={targetable}
-                          packId={packId}
                           characterId={characterId}
-                          frame={frame}
                           onTargetSelect={() => {
                             if (onSelectTarget && targetable) {
                               onSelectTarget(player.playerId, val);

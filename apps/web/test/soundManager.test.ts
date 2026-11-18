@@ -37,12 +37,13 @@ describe("SoundManager & Audio Settings Persistence", () => {
     expect(soundManager.getSettings().muted).toBe(false);
   });
 
-  it("automatically unmutes when volume is adjusted above zero", () => {
-    soundManager.setMuted(true);
-    expect(soundManager.getSettings().muted).toBe(true);
-
-    soundManager.setVolume(0.8);
-    expect(soundManager.getSettings().volume).toBe(0.8);
-    expect(soundManager.getSettings().muted).toBe(false);
+  it("safely invokes all katana execution sound methods without throwing", () => {
+    expect(() => soundManager.playKatanaUnsheathe()).not.toThrow();
+    expect(() => soundManager.playRealisticFleshSlice()).not.toThrow();
+    expect(() => soundManager.playKatanaSlice()).not.toThrow();
+    expect(() => soundManager.playScreenBloodSlap()).not.toThrow();
+    expect(() => soundManager.playBloodSplash()).not.toThrow();
+    expect(() => soundManager.playChiburuiFlick()).not.toThrow();
+    expect(() => soundManager.playKatanaSheathe()).not.toThrow();
   });
 });

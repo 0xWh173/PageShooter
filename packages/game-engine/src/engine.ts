@@ -498,6 +498,12 @@ export function eliminatePlayer(
     targetPlayer.cells[val].destroyed = true;
   }
 
+  // If the eliminated player had a pending shot, cancel it immediately with zero bullet retention
+  if (nextState.turn.currentPlayerId === playerIdToEliminate) {
+    nextState.turn.pendingShot = false;
+    nextState.turn.rolledCell = null;
+  }
+
   addEvent(nextState, events, "PLAYER_ELIMINATED", {
     targetPlayerId: targetPlayer.playerId,
     targetUsername: targetPlayer.username,

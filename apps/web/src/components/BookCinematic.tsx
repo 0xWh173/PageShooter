@@ -28,6 +28,21 @@ export const BookCinematic: React.FC<BookCinematicProps> = ({
   useEffect(() => {
     soundManager.playRuneHum();
 
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReducedMotion) {
+      setDisplayPage(pageNumber);
+      setPhase("CONSEQUENCE");
+      soundManager.playTurnChime();
+      const fastTimer = setTimeout(() => {
+        finishCinematic();
+      }, 1200);
+      return () => clearTimeout(fastTimer);
+    }
+
     // 0s - 0.9s: Storybook opens
     const t1 = setTimeout(() => {
       setPhase("FLIPPING");

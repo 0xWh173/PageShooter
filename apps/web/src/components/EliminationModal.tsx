@@ -1,24 +1,26 @@
 import React, { useEffect } from "react";
 import type { PlayerState } from "@pageshooter/shared";
-import type { MatchVisualConfig } from "../anime/types.js";
+import type { MatchCharacterConfig } from "../characters/types.js";
 import { soundManager } from "../audio/soundManager.js";
-import { CharacterCellRenderer } from "../anime/components/CharacterCellRenderer.js";
+import { CharacterCellRenderer } from "../characters/components/CharacterCellRenderer.js";
 
 interface EliminationModalProps {
   eliminatedPlayer: PlayerState;
-  visualConfig?: MatchVisualConfig | null;
+  characterConfig?: MatchCharacterConfig | null;
+  visualConfig?: MatchCharacterConfig | null;
   onDismiss: () => void;
 }
 
 export const EliminationModal: React.FC<EliminationModalProps> = ({
   eliminatedPlayer,
+  characterConfig,
   visualConfig,
   onDismiss
 }) => {
-  const playerVisual = visualConfig?.playerVisuals[eliminatedPlayer.playerId];
-  const packId = playerVisual?.animePackId || "dragon-ball";
+  const config = characterConfig || visualConfig;
+  const playerConfig = config?.playerCharacters[eliminatedPlayer.playerId];
   // Sample their first cell character as representative
-  const characterId = playerVisual?.characterAssignments[0] || "goku";
+  const characterId = playerConfig?.characterAssignments[0] || "barnaby";
 
   useEffect(() => {
     soundManager.playElimination();
@@ -39,18 +41,17 @@ export const EliminationModal: React.FC<EliminationModalProps> = ({
         onClick={(e) => e.stopPropagation()}
         className="max-w-md w-full bg-[#FFFDF9] border-2 border-cozy-parchment rounded-3xl p-6 sm:p-8 text-center shadow-2xl relative"
       >
-        <div className="w-20 h-20 mx-auto mb-2 flex items-center justify-center relative">
+        <div className="w-24 h-28 mx-auto mb-2 flex items-center justify-center relative">
           <CharacterCellRenderer
-            packId={packId}
             characterId={characterId}
-            progress={1}
+            progress={3}
             isDestroyed={true}
-            animationState="defeat"
+            pose="defeat"
           />
         </div>
 
         <div className="inline-block px-3 py-0.5 bg-orange-100 border border-orange-200 rounded-full text-xs font-fredoka font-bold text-orange-900 mb-2">
-          {packId === "dragon-ball" ? "💥 Eliminated from Arena" : "Out of Ink"}
+          ✏️ Out of Ink
         </div>
 
         <h2 className="font-fredoka text-2xl sm:text-3xl font-bold text-cozy-brown-dark mt-1 mb-1">
@@ -58,11 +59,11 @@ export const EliminationModal: React.FC<EliminationModalProps> = ({
         </h2>
 
         <div className="inline-block px-3 py-0.5 bg-[#FAF7F0] rounded-full border border-cozy-parchment text-xs font-fredoka text-cozy-brown mb-4">
-          Seat {eliminatedPlayer.position} • All 5 Cells Vaporized
+          Seat {eliminatedPlayer.position} • All 5 Folio Cells Defeated
         </div>
 
         <p className="text-xs sm:text-sm font-fredoka text-cozy-brown/80 mb-6 px-4">
-          All warrior cells have fallen in battle. Better luck in the next tournament!
+          All hand-drawn stick characters have fallen in battle. Better luck in the next folio chapter!
         </p>
 
         <button
@@ -72,7 +73,7 @@ export const EliminationModal: React.FC<EliminationModalProps> = ({
           }}
           className="px-6 py-2.5 bg-cozy-amber hover:bg-cozy-amber-dark text-cozy-brown-dark font-fredoka font-bold text-xs sm:text-sm rounded-full shadow-xs transition-colors cursor-pointer"
         >
-          Resume Tournament ➔
+          Resume Folio Battle ➔
         </button>
       </div>
     </div>

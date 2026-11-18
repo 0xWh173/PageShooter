@@ -77,26 +77,14 @@ async function run() {
     console.log(`Static server running on http://localhost:${PORT}`);
 
     const screens = [
-      { name: "1_setup_screen.png", view: "setup", width: 1280, height: 820 },
-      { name: "2_five_player_desktop.png", view: "5p", width: 1920, height: 1080 },
-      { name: "3_six_player_desktop.png", view: "6p", width: 1920, height: 1080 },
-      { name: "4_ten_player_desktop.png", view: "10p", width: 1920, height: 1080 },
-      { name: "5_five_player_laptop.png", view: "5p", width: 1366, height: 768 },
-      { name: "6_five_player_mobile.png", view: "5p", width: 390, height: 844 },
-      { name: "7_book_cinematic.png", view: "cinematic", width: 1280, height: 820 },
-      { name: "8_cell_destruction.png", view: "destruction", width: 1280, height: 820 },
-      { name: "9_player_elimination.png", view: "elimination", width: 1280, height: 820 },
-      { name: "10_victory_screen.png", view: "victory", width: 1280, height: 820 },
-      // Dedicated Victory Redesign Viewports (Section 5)
-      { name: "victory_1920x1080.png", view: "victory", width: 1920, height: 1080 },
-      { name: "victory_1600x900.png", view: "victory", width: 1600, height: 900 },
-      { name: "victory_1366x768.png", view: "victory", width: 1366, height: 768 },
-      { name: "victory_1024x768.png", view: "victory", width: 1024, height: 768 },
-      { name: "victory_390x844.png", view: "victory", width: 390, height: 844 },
-      { name: "victory_360x800.png", view: "victory", width: 360, height: 800 },
-      // Victory Scenario Validations (Section 8)
-      { name: "victory_5_survivors.png", view: "victory_5survivors", width: 1366, height: 768 },
-      { name: "victory_no_valid_targets.png", view: "victory_novalidtargets", width: 1366, height: 768 }
+      { name: "katana_battlefield_armed.png", view: "5p", width: 1920, height: 1080 },
+      { name: "handdrawn_progression_stages.png", view: "progression", width: 1440, height: 1400 },
+      { name: "katana_1_focus_center.png", view: "combat_focus&phase=FOCUS", width: 1280, height: 820 },
+      { name: "katana_2_lightning_dash.png", view: "combat_dash&phase=KATANA_DASH", width: 1280, height: 820 },
+      { name: "katana_3_razor_slash.png", view: "combat_slash&phase=SLASH_FLASH", width: 1280, height: 820 },
+      { name: "katana_4_blood_splash.png", view: "combat_blood&phase=BLOOD_SPLASH", width: 1280, height: 820 },
+      { name: "katana_5_sheathe_knockout.png", view: "combat_knockout&phase=KNOCKOUT_CROSS", width: 1280, height: 820 },
+      { name: "handdrawn_mobile_battlefield.png", view: "5p", width: 390, height: 844 }
     ];
 
     try {
@@ -107,7 +95,7 @@ async function run() {
         await takeScreenshot(url, out, s.width, s.height);
         console.log(`Saved ${s.name} (${fs.statSync(out).size} bytes)`);
       }
-      console.log("All screenshots captured successfully!");
+      console.log("All katana screenshots captured successfully!");
     } catch (e) {
       console.error("Error capturing screenshots:", e);
     } finally {
@@ -117,4 +105,3 @@ async function run() {
 }
 
 run();
-

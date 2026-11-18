@@ -39,7 +39,7 @@ describe("React Components QA & Regression Tests", () => {
       expect(screen.getByPlaceholderText("Player 10")).toBeTruthy();
 
       // Submit setup
-      const submitBtn = screen.getByRole("button", { name: /Enter the Storybook Arena/i });
+      const submitBtn = screen.getByRole("button", { name: /Begin Folio Match|Enter the Storybook Arena/i });
       fireEvent.click(submitBtn);
 
       expect(onStart).toHaveBeenCalledTimes(1);
@@ -266,7 +266,7 @@ describe("React Components QA & Regression Tests", () => {
       expect(screen.getByText(/Seat P\d • Last Player Standing/i)).toBeTruthy();
 
       // Verify section title & cells
-      expect(screen.getByText(/Surviving Warrior Cells/i)).toBeTruthy();
+      expect(screen.getByText(/Surviving (Warrior|Folio) Cells/i)).toBeTruthy();
 
       // Verify stats
       expect(screen.getByText(/Total Turns/i)).toBeTruthy();

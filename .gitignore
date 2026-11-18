@@ -7,7 +7,3 @@ coverage/
 Thumbs.db
 *.log
 *.tsbuildinfo
-.env
-.env.local
-.env.*.local
-

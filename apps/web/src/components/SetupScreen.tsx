@@ -1,11 +1,8 @@
 import React, { useState } from "react";
 import type { MatchState } from "@pageshooter/shared";
-import type { AnimePackId } from "../anime/types.js";
-import { getAllAnimePacks } from "../anime/registry.js";
 
 export interface PlayerSetupInput {
   name: string;
-  animePackId: AnimePackId;
 }
 
 interface SetupScreenProps {
@@ -51,12 +48,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   const [playerNames, setPlayerNames] = useState<string[]>(() =>
     DEFAULT_COZY_NAMES.slice(0, 5)
   );
-  const [playerPacks, setPlayerPacks] = useState<AnimePackId[]>(() =>
-    Array(5).fill("dragon-ball")
-  );
-  const [globalPack, setGlobalPack] = useState<AnimePackId>("dragon-ball");
-
-  const allPacks = getAllAnimePacks();
 
   const handlePlayerCountChange = (count: number) => {
     setPlayerCount(count);
@@ -70,26 +61,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
         next.push(candidate);
       }
       return next.slice(0, count);
-    });
-    setPlayerPacks((prev) => {
-      const next = [...prev];
-      while (next.length < count) {
-        next.push(globalPack);
-      }
-      return next.slice(0, count);
-    });
-  };
-
-  const handleGlobalPackChange = (newPack: AnimePackId) => {
-    setGlobalPack(newPack);
-    setPlayerPacks((prev) => prev.map(() => newPack));
-  };
-
-  const handlePlayerPackChange = (idx: number, newPack: AnimePackId) => {
-    setPlayerPacks((prev) => {
-      const next = [...prev];
-      next[idx] = newPack;
-      return next;
     });
   };
 
@@ -111,8 +82,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
     const result: PlayerSetupInput[] = [];
     for (let i = 0; i < playerCount; i++) {
       result.push({
-        name: playerNames[i]?.trim() || `Player ${i + 1}`,
-        animePackId: playerPacks[i] || "dragon-ball"
+        name: playerNames[i]?.trim() || `Player ${i + 1}`
       });
     }
     onStartMatch(result);
@@ -120,15 +90,15 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 
   return (
     <div className="min-h-screen bg-cozy-ivory text-cozy-brown-dark flex flex-col items-center justify-center p-3 sm:p-6 select-none">
-      <div className="max-w-2xl w-full bg-cozy-white border-2 border-cozy-parchment rounded-3xl p-5 sm:p-9 shadow-card relative">
+      <div className="cartoon-card-lg max-w-2xl w-full bg-[#FFFDF7] p-5 sm:p-9 relative">
         {/* Header */}
         <div className="text-center mb-5">
-          <div className="text-3xl sm:text-4xl mb-1">📖 ⚡ ✏️</div>
+          <div className="text-3xl sm:text-4xl mb-1">📖 ✏️ ⭐</div>
           <h1 className="font-fredoka text-2xl sm:text-4xl font-bold text-cozy-brown-dark tracking-tight">
             PageShooter
           </h1>
           <p className="text-xs sm:text-sm font-fredoka text-cozy-brown/80 mt-1">
-            Illustrated anime folio shooter for 5 to 10 players
+            Hand-Drawn Illustrated Folio Game for 5 to 10 players
           </p>
         </div>
 
@@ -167,74 +137,16 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 
         {/* Setup Form */}
         <form onSubmit={handleStart} className="space-y-5">
-          {/* Featured Anime Pack Selector */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-fredoka font-bold uppercase tracking-wider text-cozy-brown">
-                Anime Character Pack
-              </label>
-              <span className="text-[10px] font-fredoka text-cozy-amber-dark font-semibold">
-                Modular Asset Pipeline
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {allPacks.map((pack) => {
-                const isAvailable = pack.status === "available";
-                const isSelected = globalPack === pack.id;
-
-                return (
-                  <button
-                    type="button"
-                    key={pack.id}
-                    disabled={!isAvailable}
-                    onClick={() => handleGlobalPackChange(pack.id)}
-                    className={`
-                      p-2.5 rounded-xl border text-left transition-all relative flex flex-col justify-between
-                      ${isSelected
-                        ? "bg-amber-50 border-amber-500 shadow-xs ring-1 ring-amber-500"
-                        : isAvailable
-                        ? "bg-[#FAF7F0] border-cozy-parchment hover:border-cozy-amber cursor-pointer"
-                        : "bg-[#F3EFEA] border-gray-200 opacity-60 cursor-not-allowed"
-                      }
-                    `}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="font-fredoka text-xs font-bold text-cozy-brown-dark truncate">
-                          {pack.name}
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-fredoka text-cozy-brown/80 block mt-0.5 truncate">
-                        {pack.badge}
-                      </span>
-                    </div>
-
-                    <div className="mt-2 flex items-center justify-between">
-                      {isAvailable ? (
-                        <span className="text-[9px] font-fredoka font-bold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900">
-                          {isSelected ? "Active Pack" : "Available"}
-                        </span>
-                      ) : (
-                        <span className="text-[9px] font-fredoka font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">
-                          Coming Soon
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-[11px] font-fredoka text-cozy-brown/70 mt-1.5">
-              Dragon Ball Z prototype includes 12 fighters (Goku, Vegeta, Piccolo, Cell, etc.) with custom Ki charge & attack sequences.
-            </p>
-          </div>
-
           {/* Player Count Selector */}
           <div>
-            <label className="block text-xs font-fredoka font-bold uppercase tracking-wider text-cozy-brown mb-2">
-              Number of Players (5 – 10)
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-fredoka font-bold uppercase tracking-wider text-cozy-brown">
+                Number of Players (5 – 10)
+              </label>
+              <span className="text-[11px] font-fredoka text-cozy-brown/70">
+                All seats share equal folio columns
+              </span>
+            </div>
             <div className="flex items-center justify-between gap-1.5 sm:gap-2">
               {[5, 6, 7, 8, 9, 10].map((num) => (
                 <button
@@ -255,11 +167,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             </div>
           </div>
 
-          {/* Player Names & Per-Player Anime Pack */}
+          {/* Player Names & Seats */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-fredoka font-bold uppercase tracking-wider text-cozy-brown">
-                Player Seats & Character Packs
+                Player Seats & Custom Names
               </label>
               <button
                 type="button"
@@ -288,30 +200,23 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                     placeholder={`Player ${idx + 1}`}
                     className="w-full bg-transparent text-sm font-fredoka font-semibold text-cozy-brown-dark focus:outline-none placeholder:text-cozy-brown/40"
                   />
-                  {/* Per-Player Pack Selector */}
-                  <select
-                    value={playerPacks[idx] || "dragon-ball"}
-                    onChange={(e) => handlePlayerPackChange(idx, e.target.value as AnimePackId)}
-                    className="bg-cozy-white text-[11px] font-fredoka font-bold text-cozy-brown-dark border border-cozy-parchment rounded-lg px-1.5 py-0.5 cursor-pointer focus:outline-none"
-                    aria-label={`Player ${idx + 1} Anime Pack`}
-                  >
-                    <option value="dragon-ball">🔥 DBZ</option>
-                    <option value="classic-stickman">✏️ Classic</option>
-                  </select>
+                  <span className="text-base flex-shrink-0" title="Hand-drawn storybook fighter">
+                    ✏️
+                  </span>
                 </div>
               ))}
             </div>
             <p className="text-[11px] font-fredoka text-cozy-brown/70 mt-2">
-              Seats and initial turn order are randomly shuffled at match creation. 5 distinct anime warriors will be randomly assigned to each player's cells and remain fixed.
+              Seats and initial turn order are randomly shuffled at match creation. 5 distinct hand-drawn stick characters will be assigned to each seat's matrix cells.
             </p>
           </div>
 
           {/* Start Battle Button */}
           <button
             type="submit"
-            className="w-full py-3.5 sm:py-4 bg-cozy-amber hover:bg-cozy-amber-dark text-cozy-brown-dark font-fredoka font-bold text-base rounded-2xl transition-all shadow-xs active:scale-[0.99] cursor-pointer border border-cozy-amber-dark"
+            className="cartoon-btn w-full py-3.5 sm:py-4 bg-[#FFB703] hover:bg-[#FFC933] text-[#1E1410] font-fredoka font-bold text-base rounded-2xl cursor-pointer"
           >
-            Enter the Storybook Arena ➔
+            Begin Folio Match ➔
           </button>
         </form>
       </div>

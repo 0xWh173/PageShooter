@@ -1,19 +1,21 @@
 import React, { useEffect } from "react";
 import type { MatchState, PlayerState, CellValue } from "@pageshooter/shared";
 import { CELL_VALUES } from "@pageshooter/shared";
-import type { MatchVisualConfig } from "../anime/types.js";
+import type { MatchCharacterConfig } from "../characters/types.js";
 import { soundManager } from "../audio/soundManager.js";
 import { StickmanCell } from "./StickmanCell.js";
 
 interface VictoryModalProps {
   matchState: MatchState;
-  visualConfig?: MatchVisualConfig | null;
+  characterConfig?: MatchCharacterConfig | null;
+  visualConfig?: MatchCharacterConfig | null;
   onPlayAgain: () => void;
   onNewMatch: () => void;
 }
 
 export const VictoryModal: React.FC<VictoryModalProps> = ({
   matchState,
+  characterConfig,
   visualConfig,
   onPlayAgain,
   onNewMatch
@@ -28,6 +30,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
   if (!winner) return null;
 
+  const config = characterConfig || visualConfig;
   const aliveCellsCount = Object.values(winner.cells).filter((c) => !c.destroyed).length;
   const winReasonLabel =
     matchState.winReason === "NO_VALID_TARGETS"
@@ -95,14 +98,13 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         {/* C. Surviving Warrior Cells */}
         <div className="bg-[#FAF7F0] border border-cozy-cell-border rounded-2xl p-2 sm:p-4 mb-3 sm:mb-4 w-full min-w-0 overflow-hidden">
           <div className="text-[11px] sm:text-xs font-fredoka font-bold uppercase tracking-wider text-cozy-brown mb-1.5 sm:mb-2 text-center">
-            Surviving Warrior Cells
+            Surviving Folio Cells
           </div>
 
           <div className="grid grid-cols-5 gap-0.5 sm:gap-2 max-w-lg mx-auto border border-cozy-cell-border rounded-xl bg-[#FFFDF9] p-0.5 sm:p-1 shadow-inner w-full min-w-0">
             {CELL_VALUES.map((val: CellValue) => {
-              const playerVisual = visualConfig?.playerVisuals[winner.playerId];
-              const packId = playerVisual?.animePackId || "dragon-ball";
-              const characterId = playerVisual?.characterAssignments[val];
+              const playerConfig = config?.playerCharacters[winner.playerId];
+              const characterId = playerConfig?.characterAssignments[val] || "barnaby";
 
               return (
                 <div
@@ -112,7 +114,6 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                   <StickmanCell
                     cell={winner.cells[val]}
                     cellValue={val}
-                    packId={packId}
                     characterId={characterId}
                   />
                 </div>

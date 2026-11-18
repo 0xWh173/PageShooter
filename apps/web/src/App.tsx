@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import type { MatchState, PlayerState, CellValue, MatchEvent } from "@pageshooter/shared";
+import type { MatchState, PlayerState, CellValue, MatchEvent, PublicRoomState } from "@pageshooter/shared";
 import {
   createInitialMatchState,
   applyRoll,
@@ -10,20 +10,30 @@ import {
   saveOfflineMatch,
   loadOfflineMatch,
   clearOfflineMatch,
-  saveOfflineMatchVisuals,
-  loadOfflineMatchVisuals
+  saveOfflineMatchCharacters,
+  loadOfflineMatchCharacters
 } from "./storage/db.js";
-import type { MatchVisualConfig, AnimePackId } from "./anime/types.js";
-import { assignMatchVisuals, ensureMatchVisuals } from "./anime/registry.js";
+import type { MatchCharacterConfig } from "./characters/types.js";
+import { assignMatchCharacters, ensureMatchCharacters, getCharacter } from "./characters/registry.js";
 import { soundManager } from "./audio/soundManager.js";
 import { SetupScreen, type PlayerSetupInput } from "./components/SetupScreen.js";
 import { TurnHUD } from "./components/TurnHUD.js";
 import { Battlefield } from "./components/Battlefield.js";
 import { BookCinematic } from "./components/BookCinematic.js";
-import { CombatAnimation } from "./components/CombatAnimation.js";
+import { CombatAnimation, type CartoonCombatPhase } from "./components/CombatAnimation.js";
 import { EliminationModal } from "./components/EliminationModal.js";
 import { VictoryModal } from "./components/VictoryModal.js";
 import { EventFeed } from "./components/EventFeed.js";
+import { HandDrawnGalleryQA } from "./components/qa/HandDrawnGalleryQA.js";
+import { CellProgressionQA } from "./components/qa/CellProgressionQA.js";
+import { AuthProvider, useAuth } from "./context/AuthContext.js";
+import { AuthModal } from "./components/online/AuthModal.js";
+import { MultiplayerLobbyScreen } from "./components/online/MultiplayerLobbyScreen.js";
+import { WaitingRoomScreen } from "./components/online/WaitingRoomScreen.js";
+import { MultiplayerArenaScreen } from "./components/online/MultiplayerArenaScreen.js";
+import { AudioSettingsModal } from "./components/online/AudioSettingsModal.js";
+import { CartoonClickEffects } from "./components/CartoonClickEffects.js";
+import { apiClient, getWsBaseUrl, WebSocketClient } from "./network/index.js";
 
 interface CinematicState {
   pageNumber: number;
@@ -35,11 +45,9 @@ interface CinematicState {
 interface CombatState {
   shooterName: string;
   shooterPosition: string;
-  shooterPackId: AnimePackId;
   shooterCharacterId: string;
   victimName: string;
   victimPosition: string;
-  victimPackId: AnimePackId;
   victimCharacterId: string;
   targetCellValue: CellValue;
   nextState: MatchState;
@@ -67,8 +75,15 @@ function createQa5pState(): MatchState {
   return state;
 }
 
-export const App: React.FC = () => {
+export const AppContent: React.FC = () => {
   const qaView = getQaViewParam();
+  const { user, isAuthenticated, isColdStarting } = useAuth();
+
+  const [gameMode, setGameMode] = useState<"OFFLINE" | "ONLINE">("OFFLINE");
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
+  const [audioModalOpen, setAudioModalOpen] = useState<boolean>(false);
+  const [activeOnlineRoom, setActiveOnlineRoom] = useState<PublicRoomState | null>(null);
+  const [wsClient, setWsClient] = useState<WebSocketClient | null>(null);
 
   const [matchState, setMatchState] = useState<MatchState | null>(() => {
     if (!qaView || qaView === "setup") return null;
@@ -78,7 +93,7 @@ export const App: React.FC = () => {
       qaView === "combat" ||
       qaView === "destruction" ||
       qaView === "elimination" ||
-      qaView === "dragonball"
+      qaView?.startsWith("combat_")
     ) {
       return createQa5pState();
     }
@@ -128,11 +143,11 @@ export const App: React.FC = () => {
     return null;
   });
 
-  const [visualConfig, setVisualConfig] = useState<MatchVisualConfig | null>(() => {
+  const [characterConfig, setCharacterConfig] = useState<MatchCharacterConfig | null>(() => {
     if (!matchState) return null;
-    return assignMatchVisuals(
+    return assignMatchCharacters(
       matchState.matchId,
-      matchState.players.map((p) => ({ playerId: p.playerId, animePackId: "dragon-ball" }))
+      matchState.players.map((p) => ({ playerId: p.playerId }))
     );
   });
 
@@ -140,22 +155,13 @@ export const App: React.FC = () => {
   const [matchEvents, setMatchEvents] = useState<MatchEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(() => !qaView);
 
-  // Global subtle animation frame ticker for idle breathing and Ki flickering
-  const [frame, setFrame] = useState<number>(0);
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setFrame((f) => (f + 1) % 60);
-    }, 150);
-    return () => clearInterval(timer);
-  }, []);
-
   const [cinematicData, setCinematicData] = useState<CinematicState | null>(() => {
     if (qaView === "cinematic") {
       const state = createQa5pState();
       return {
         pageNumber: 248,
         outcome: 8,
-        consequenceText: "🎉 Cell #8 learned Arms!",
+        consequenceText: "🎉 Barnaby learned Arms stage!",
         nextMatchState: state
       };
     }
@@ -163,17 +169,22 @@ export const App: React.FC = () => {
   });
 
   const [combatData, setCombatData] = useState<CombatState | null>(() => {
-    if (qaView === "combat" || qaView === "destruction") {
+    if (
+      qaView === "combat" ||
+      qaView === "destruction" ||
+      qaView?.startsWith("combat_")
+    ) {
       const state = createQa5pState();
+      const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+      const shooterChar = urlParams?.get("shooter") || "barnaby";
+      const victimChar = urlParams?.get("victim") || "clover";
       return {
         shooterName: "Barnaby",
         shooterPosition: "P1",
-        shooterPackId: "dragon-ball",
-        shooterCharacterId: "goku",
+        shooterCharacterId: shooterChar,
         victimName: "Clover",
         victimPosition: "P2",
-        victimPackId: "dragon-ball",
-        victimCharacterId: "vegeta",
+        victimCharacterId: victimChar,
         targetCellValue: 2,
         nextState: state,
         events: []
@@ -192,23 +203,23 @@ export const App: React.FC = () => {
 
   const isActionLockedRef = useRef<boolean>(false);
 
-  // Check IndexedDB for existing active match and visual config on initial load
+  // Check IndexedDB for existing active match and character config on initial load
   useEffect(() => {
     if (qaView) return;
     let isMounted = true;
-    Promise.all([loadOfflineMatch(true), loadOfflineMatchVisuals()])
-      .then(([loadedMatch, loadedVisuals]) => {
+    Promise.all([loadOfflineMatch(true), loadOfflineMatchCharacters()])
+      .then(([loadedMatch, loadedChars]) => {
         if (!isMounted) return;
         if (loadedMatch && loadedMatch.phase === "ACTIVE") {
           setMatchState(loadedMatch);
           setSavedMatch(loadedMatch);
 
-          const fixedVisuals = ensureMatchVisuals(
-            loadedVisuals,
+          const fixedChars = ensureMatchCharacters(
+            loadedChars,
             loadedMatch.matchId,
             loadedMatch.players.map((p) => p.playerId)
           );
-          setVisualConfig(fixedVisuals);
+          setCharacterConfig(fixedChars);
         } else {
           clearOfflineMatch().catch(() => {});
         }
@@ -225,10 +236,83 @@ export const App: React.FC = () => {
     };
   }, [qaView]);
 
+  // Online room session recovery (F5 refresh & active participation discovery)
+  useEffect(() => {
+    if (gameMode === "ONLINE" && isAuthenticated && user) {
+      let isSubscribed = true;
+      apiClient
+        .getMyActiveRoom()
+        .then(({ activeRoom }) => {
+          if (!isSubscribed || !activeRoom) return;
+          apiClient
+            .getRoom(activeRoom.roomCode)
+            .then(({ room }) => {
+              if (isSubscribed) {
+                setActiveOnlineRoom(room);
+              }
+            })
+            .catch(() => {});
+        })
+        .catch(() => {});
+      return () => {
+        isSubscribed = false;
+      };
+    } else if (!isAuthenticated) {
+      setActiveOnlineRoom(null);
+    }
+  }, [gameMode, isAuthenticated, user]);
+
+  // Connect WebSocket when entering an active online chamber
+  useEffect(() => {
+    if (gameMode === "ONLINE" && activeOnlineRoom && isAuthenticated && user) {
+      const client = new WebSocketClient({
+        url: getWsBaseUrl(),
+        autoReconnect: true
+      });
+
+      let isMounted = true;
+
+      client
+        .connect()
+        .then(() => {
+          if (!isMounted) {
+            client.disconnect();
+            return;
+          }
+          // Join or reconnect room over WebSocket to register for room-wide broadcasts
+          const isSpec = activeOnlineRoom.spectators.some((s) => s.userId === user.id);
+          if (isSpec) {
+            client.joinAsSpectator(activeOnlineRoom.roomCode);
+          } else if (
+            activeOnlineRoom.phase === "ACTIVE" ||
+            activeOnlineRoom.phase === "PAUSED"
+          ) {
+            client.reconnectMatch(
+              activeOnlineRoom.roomCode,
+              activeOnlineRoom.match?.version ?? 0
+            );
+          } else {
+            client.joinRoom(activeOnlineRoom.roomCode);
+          }
+        })
+        .catch(() => {
+          // Socket connection failure handled gracefully
+        });
+
+      setWsClient(client);
+
+      return () => {
+        isMounted = false;
+        client.disconnect();
+        setWsClient(null);
+      };
+    }
+  }, [gameMode, activeOnlineRoom?.roomCode, isAuthenticated, user?.id]);
+
   // Start new match
   const handleStartMatch = async (players: PlayerSetupInput[]) => {
     isActionLockedRef.current = false;
-    const matchId = `anime-match-${Date.now()}`;
+    const matchId = `folio-match-${Date.now()}`;
     const playerInputs = players.map((p, idx) => ({
       playerId: `p_${idx + 1}_${Date.now()}`,
       username: p.name,
@@ -237,20 +321,17 @@ export const App: React.FC = () => {
 
     const { state, events } = createInitialMatchState(matchId, "storybook-arena", playerInputs);
 
-    // Assign fixed characters from chosen packs
-    const visuals = assignMatchVisuals(
+    // Assign 5 distinct characters per seat
+    const charConfig = assignMatchCharacters(
       matchId,
-      playerInputs.map((inp, idx) => ({
-        playerId: inp.playerId,
-        animePackId: players[idx]?.animePackId || "dragon-ball"
-      }))
+      playerInputs.map((inp) => ({ playerId: inp.playerId }))
     );
 
     await saveOfflineMatch(state);
-    await saveOfflineMatchVisuals(visuals);
+    await saveOfflineMatchCharacters(charConfig);
 
     setMatchState(state);
-    setVisualConfig(visuals);
+    setCharacterConfig(charConfig);
     setMatchEvents(events);
     setSavedMatch(null);
     soundManager.playTurnChime();
@@ -259,14 +340,14 @@ export const App: React.FC = () => {
   // Resume saved match from IndexedDB
   const handleResumeSavedMatch = async () => {
     if (savedMatch && savedMatch.phase === "ACTIVE") {
-      const loadedVisuals = await loadOfflineMatchVisuals();
-      const fixedVisuals = ensureMatchVisuals(
-        loadedVisuals,
+      const loadedChars = await loadOfflineMatchCharacters();
+      const fixedChars = ensureMatchCharacters(
+        loadedChars,
         savedMatch.matchId,
         savedMatch.players.map((p) => p.playerId)
       );
       setMatchState(savedMatch);
-      setVisualConfig(fixedVisuals);
+      setCharacterConfig(fixedChars);
       soundManager.playTurnChime();
     }
   };
@@ -275,7 +356,7 @@ export const App: React.FC = () => {
   const handleDiscardSavedMatch = async () => {
     await clearOfflineMatch();
     setSavedMatch(null);
-    setVisualConfig(null);
+    setCharacterConfig(null);
   };
 
   // Abandon / Reset current match
@@ -283,7 +364,7 @@ export const App: React.FC = () => {
     isActionLockedRef.current = false;
     await clearOfflineMatch();
     setMatchState(null);
-    setVisualConfig(null);
+    setCharacterConfig(null);
     setSavedMatch(null);
     setMatchEvents([]);
     setCinematicData(null);
@@ -291,16 +372,12 @@ export const App: React.FC = () => {
     setEliminatedNoticePlayer(null);
   };
 
-  // Play again with same roster & packs
+  // Play again with same roster
   const handlePlayAgain = async () => {
     if (!matchState) return;
-    const playerInputs: PlayerSetupInput[] = matchState.players.map((p) => {
-      const vis = visualConfig?.playerVisuals[p.playerId];
-      return {
-        name: p.username,
-        animePackId: vis?.animePackId || "dragon-ball"
-      };
-    });
+    const playerInputs: PlayerSetupInput[] = matchState.players.map((p) => ({
+      name: p.username
+    }));
     await handleStartMatch(playerInputs);
   };
 
@@ -335,17 +412,17 @@ export const App: React.FC = () => {
     // 4. Determine consequence description
     let consequenceText: string;
     const targetCell = currentPlayer.cells[outcome];
-    const playerVis = visualConfig?.playerVisuals[currentPlayerId];
-    const assignedCharId = playerVis?.characterAssignments[outcome];
+    const playerConfig = characterConfig?.playerCharacters[currentPlayerId];
+    const assignedCharId = playerConfig?.characterAssignments[outcome] || "barnaby";
+    const assignedChar = getCharacter(assignedCharId);
 
     if (targetCell.destroyed) {
-      consequenceText = `Cell #${outcome} was already vaporized! Turn passes gently.`;
+      consequenceText = `Cell #${outcome} (${assignedChar.name}) was already poofed! Turn passes gently.`;
     } else if (targetCell.progress < 5) {
-      const labels = ["Empty", "Face", "Body", "Legs", "Arms", "Attack Ready"];
-      const charName = assignedCharId ? assignedCharId.toUpperCase() : `Cell #${outcome}`;
-      consequenceText = `⚡ ${charName} reached ${labels[targetCell.progress + 1]} stage!`;
+      const labels = ["Empty", "Face", "Body", "Legs", "Arms", "Folio Weapon"];
+      consequenceText = `✏️ ${assignedChar.name} reached ${labels[targetCell.progress + 1]} stage!`;
     } else {
-      consequenceText = `⭐ Ki Blast loaded! Select an opponent cell to unleash!`;
+      consequenceText = `🎯 ${assignedChar.name}'s weapon loaded! Select an opponent cell to shoot!`;
     }
 
     // 5. Trigger Cinematic
@@ -392,24 +469,20 @@ export const App: React.FC = () => {
     await saveOfflineMatch(nextState);
 
     // Character identity resolution
-    const shooterVisual = visualConfig?.playerVisuals[shooterId];
-    const shooterPackId = shooterVisual?.animePackId || "dragon-ball";
+    const shooterConfig = characterConfig?.playerCharacters[shooterId];
     const shooterCharId =
-      shooterVisual?.characterAssignments[matchState.turn.rolledCell || 0] || "goku";
+      shooterConfig?.characterAssignments[matchState.turn.rolledCell || 0] || "barnaby";
 
-    const victimVisual = visualConfig?.playerVisuals[targetPlayerId];
-    const victimPackId = victimVisual?.animePackId || "dragon-ball";
-    const victimCharId = victimVisual?.characterAssignments[cellValue] || "vegeta";
+    const victimConfig = characterConfig?.playerCharacters[targetPlayerId];
+    const victimCharId = victimConfig?.characterAssignments[cellValue] || "clover";
 
     // Trigger Combat Animation
     setCombatData({
       shooterName: shooter.username,
       shooterPosition: shooter.position,
-      shooterPackId,
       shooterCharacterId: shooterCharId,
       victimName: victim.username,
       victimPosition: victim.position,
-      victimPackId,
       victimCharacterId: victimCharId,
       targetCellValue: cellValue,
       nextState,
@@ -438,6 +511,14 @@ export const App: React.FC = () => {
     }
   }, [combatData]);
 
+  if (qaView === "gallery") {
+    return <HandDrawnGalleryQA />;
+  }
+
+  if (qaView === "progression") {
+    return <CellProgressionQA />;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-notebook-pattern flex flex-col items-center justify-center text-cozy-brown">
@@ -449,90 +530,211 @@ export const App: React.FC = () => {
     );
   }
 
-  // If no active match, show setup screen
-  if (!matchState) {
-    return (
-      <SetupScreen
-        savedMatch={savedMatch}
-        onResumeSavedMatch={handleResumeSavedMatch}
-        onDiscardSavedMatch={handleDiscardSavedMatch}
-        onStartMatch={handleStartMatch}
-      />
-    );
-  }
-
-  // If match is completed, show Victory Screen dedicated full-page view
-  if (matchState.phase === "COMPLETED") {
-    return (
-      <VictoryModal
-        matchState={matchState}
-        visualConfig={visualConfig}
-        onPlayAgain={handlePlayAgain}
-        onNewMatch={handleResetMatch}
-      />
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-cozy-ivory text-cozy-brown-dark flex flex-col justify-between selection:bg-cozy-amber selection:text-cozy-brown-dark w-full max-w-full overflow-x-hidden">
-      {/* Turn HUD Header (Fixed height flow, no overlap) */}
-      <TurnHUD
-        matchState={matchState}
-        isRolling={cinematicData !== null || combatData !== null}
-        onRoll={handleRoll}
-        onResetMatch={handleResetMatch}
-      />
+    <div className="min-h-screen cartoon-halftone-bg text-[#FFFDF7] flex flex-col justify-between selection:bg-[#FFB703] selection:text-[#1E1410] w-full max-w-full overflow-x-hidden">
+      <CartoonClickEffects />
+      {/* Top Application Header & Mode Switcher */}
+      <header className="w-full bg-[#241938] border-b-[3px] border-[#1E1410] shadow-[0_4px_0_#1E1410] py-2.5 px-3 sm:px-5 flex flex-wrap items-center justify-between gap-2 z-30 flex-shrink-0">
+        <div className="flex items-center space-x-2">
+          <span className="text-xl sm:text-2xl drop-shadow-[2px_2px_0_#1E1410]">📖</span>
+          <span className="font-fredoka font-bold text-sm sm:text-base tracking-wide text-[#FFB703] drop-shadow-[2px_2px_0_#1E1410]">
+            PageShooter
+          </span>
+        </div>
 
-      {/* Main Matrix Battlefield Area */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-2 sm:px-4 py-3 flex flex-col max-w-full overflow-hidden">
-        <Battlefield
-          matchState={matchState}
-          visualConfig={visualConfig}
-          frame={frame}
-          onSelectTarget={handleSelectTarget}
-        />
-        <EventFeed events={matchEvents} />
-      </main>
+        {/* Mode Switcher */}
+        <div className="flex items-center bg-[#191128] p-1 rounded-2xl border-[3px] border-[#1E1410] shadow-[3px_3px_0_#1E1410] gap-1">
+          <button
+            onClick={() => setGameMode("OFFLINE")}
+            className={`px-2.5 sm:px-3.5 py-1 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all ${
+              gameMode === "OFFLINE"
+                ? "cartoon-btn bg-[#FFB703] text-[#1E1410]"
+                : "text-[#C9BDD9] hover:text-[#FFFDF7]"
+            }`}
+          >
+            Local Pass & Play
+          </button>
+          <button
+            onClick={() => setGameMode("ONLINE")}
+            className={`px-2.5 sm:px-3.5 py-1 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all ${
+              gameMode === "ONLINE"
+                ? "cartoon-btn bg-[#21D4FD] text-[#1E1410]"
+                : "text-[#C9BDD9] hover:text-[#FFFDF7]"
+            }`}
+          >
+            Online Multiplayer
+          </button>
+        </div>
+
+        {/* Audio Mixer & Active Scribe Indicator */}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setAudioModalOpen(true)}
+            title="Audio Mixer (5 Channels)"
+            aria-label="Audio Settings"
+            data-testid="open-audio-settings"
+            className="cartoon-btn px-2.5 py-1 bg-[#34264D] hover:bg-[#433163] rounded-xl text-xs font-bold text-[#FFFDF7]"
+          >
+            🔊
+          </button>
+          {isAuthenticated && user && (
+            <div className="flex items-center space-x-1.5 sm:space-x-2 bg-[#34264D] border-2 border-[#1E1410] px-2.5 py-1 rounded-xl text-xs font-bold text-[#FFFDF7]">
+              <span className="w-5 h-5 rounded-full bg-[#FFB703] text-[#1E1410] border-2 border-[#1E1410] font-bold flex items-center justify-center text-[10px]">
+                {user.username[0]?.toUpperCase()}
+              </span>
+              <span className="max-w-[70px] sm:max-w-none truncate">{user.username}</span>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* Auth Modal & Audio Settings Modal */}
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      <AudioSettingsModal isOpen={audioModalOpen} onClose={() => setAudioModalOpen(false)} />
+
+      {/* Main View: ONLINE vs OFFLINE */}
+      {gameMode === "ONLINE" ? (
+        <main className="flex-1 w-full max-w-7xl mx-auto px-2 sm:px-4 py-4 flex flex-col justify-center">
+          {isColdStarting && (
+            <div
+              role="status"
+              data-testid="cold-start-banner"
+              className="mb-4 p-3 rounded-xl bg-amber-950/70 border border-amber-500/40 text-amber-200 text-xs flex items-center justify-center space-x-2"
+            >
+              <span className="animate-spin">⏳</span>
+              <span>Summoning game server from its slumber (cold start)... Please allow up to 30–50s.</span>
+            </div>
+          )}
+          {activeOnlineRoom ? (
+            activeOnlineRoom.phase === "WAITING" ? (
+              <WaitingRoomScreen
+                room={activeOnlineRoom}
+                currentUser={user}
+                webSocketClient={wsClient}
+                onLeaveRoom={() => setActiveOnlineRoom(null)}
+                onMatchStarted={(startedMatch) => {
+                  setActiveOnlineRoom((prev) =>
+                    prev ? { ...prev, phase: "ACTIVE", match: startedMatch } : null
+                  );
+                }}
+              />
+            ) : (
+              <MultiplayerArenaScreen
+                initialRoom={activeOnlineRoom}
+                currentUser={user}
+                webSocketClient={wsClient}
+                onLeaveMatch={() => setActiveOnlineRoom(null)}
+              />
+            )
+          ) : (
+            <MultiplayerLobbyScreen
+              onRoomCreated={(room) => setActiveOnlineRoom(room)}
+              onJoinRoom={(room) => setActiveOnlineRoom(room)}
+              onOpenAuth={() => setAuthModalOpen(true)}
+            />
+          )}
+        </main>
+      ) : (
+        /* OFFLINE PASS & PLAY VIEW (100% Preserved) */
+        <div className="flex-1 flex flex-col justify-between">
+          {!matchState ? (
+            <SetupScreen
+              savedMatch={savedMatch}
+              onResumeSavedMatch={handleResumeSavedMatch}
+              onDiscardSavedMatch={handleDiscardSavedMatch}
+              onStartMatch={handleStartMatch}
+            />
+          ) : matchState.phase === "COMPLETED" ? (
+            <VictoryModal
+              matchState={matchState}
+              characterConfig={characterConfig}
+              onPlayAgain={handlePlayAgain}
+              onNewMatch={handleResetMatch}
+            />
+          ) : (
+            <div className="flex-1 flex flex-col justify-between w-full max-w-full overflow-x-hidden">
+              {/* Turn HUD Header (Fixed height flow, no overlap) */}
+              <TurnHUD
+                matchState={matchState}
+                isRolling={cinematicData !== null || combatData !== null}
+                onRoll={handleRoll}
+                onResetMatch={handleResetMatch}
+              />
+
+              {/* Main Matrix Battlefield Area */}
+              <main className="flex-1 w-full max-w-7xl mx-auto px-2 sm:px-4 py-3 flex flex-col max-w-full overflow-hidden">
+                <Battlefield
+                  matchState={matchState}
+                  characterConfig={characterConfig}
+                  onSelectTarget={handleSelectTarget}
+                />
+                <EventFeed events={matchEvents} />
+              </main>
+
+              {/* Storybook Opening Cinematic Modal */}
+              {cinematicData && (
+                <BookCinematic
+                  pageNumber={cinematicData.pageNumber}
+                  outcome={cinematicData.outcome}
+                  consequenceText={cinematicData.consequenceText}
+                  onComplete={handleCinematicComplete}
+                />
+              )}
+
+              {/* Combat Animation Modal */}
+              {combatData && (
+                <CombatAnimation
+                  shooterName={combatData.shooterName}
+                  shooterPosition={combatData.shooterPosition}
+                  shooterCharacterId={combatData.shooterCharacterId}
+                  victimName={combatData.victimName}
+                  victimPosition={combatData.victimPosition}
+                  victimCharacterId={combatData.victimCharacterId}
+                  targetCellValue={combatData.targetCellValue}
+                  onComplete={handleCombatComplete}
+                  fixedPhase={
+                    (typeof window !== "undefined" && (new URLSearchParams(window.location.search).get("phase") as CartoonCombatPhase | null) || undefined) ||
+                    (qaView === "combat_focus"
+                      ? "FOCUS"
+                      : qaView === "combat_dash" || qaView === "combat_aim"
+                      ? "KATANA_DASH"
+                      : qaView === "combat_slash" || qaView === "combat_fire"
+                      ? "SLASH_FLASH"
+                      : qaView === "combat_blood" || qaView === "combat_impact" || qaView === "combat_travel"
+                      ? "BLOOD_SPLASH"
+                      : qaView === "combat_knockout"
+                      ? "KNOCKOUT_CROSS"
+                      : undefined)
+                  }
+                />
+              )}
+
+              {/* Player Elimination Modal */}
+              {eliminatedNoticePlayer && (
+                <EliminationModal
+                  eliminatedPlayer={eliminatedNoticePlayer}
+                  characterConfig={characterConfig}
+                  onDismiss={() => setEliminatedNoticePlayer(null)}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Footer / Status bar */}
-      <footer className="w-full border-t border-cozy-parchment bg-cozy-white/60 py-2 px-4 text-center text-xs font-fredoka text-cozy-brown/70 flex-shrink-0">
-        <span>PageShooter • Anime Character Pack Edition • Auto-saved to browser</span>
+      <footer className="w-full border-t border-[#292036] bg-[#14101a] py-2 px-4 text-center text-xs font-fredoka text-[#8e809e] flex-shrink-0">
+        <span>PageShooter • Hand-Drawn Illustrated Stickman Edition • {gameMode === "ONLINE" ? "Authoritative Online Mode" : "Auto-saved to browser"}</span>
       </footer>
-
-      {/* Storybook Opening Cinematic Modal */}
-      {cinematicData && (
-        <BookCinematic
-          pageNumber={cinematicData.pageNumber}
-          outcome={cinematicData.outcome}
-          consequenceText={cinematicData.consequenceText}
-          onComplete={handleCinematicComplete}
-        />
-      )}
-
-      {/* Combat Animation Modal */}
-      {combatData && (
-        <CombatAnimation
-          shooterName={combatData.shooterName}
-          shooterPosition={combatData.shooterPosition}
-          shooterPackId={combatData.shooterPackId}
-          shooterCharacterId={combatData.shooterCharacterId}
-          victimName={combatData.victimName}
-          victimPosition={combatData.victimPosition}
-          victimPackId={combatData.victimPackId}
-          victimCharacterId={combatData.victimCharacterId}
-          targetCellValue={combatData.targetCellValue}
-          onComplete={handleCombatComplete}
-        />
-      )}
-
-      {/* Player Elimination Modal */}
-      {eliminatedNoticePlayer && (
-        <EliminationModal
-          eliminatedPlayer={eliminatedNoticePlayer}
-          visualConfig={visualConfig}
-          onDismiss={() => setEliminatedNoticePlayer(null)}
-        />
-      )}
     </div>
   );
 };
+
+export const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+};
+

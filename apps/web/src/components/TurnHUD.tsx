@@ -88,7 +88,7 @@ export const TurnHUD: React.FC<TurnHUDProps> = ({
               <button
                 onClick={onRoll}
                 disabled={isRolling}
-                className="flex items-center gap-1.5 px-4 py-2 bg-cozy-amber hover:bg-cozy-amber-dark text-cozy-brown-dark font-fredoka font-bold text-xs sm:text-sm rounded-full transition-all shadow-xs active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none cursor-pointer flex-shrink-0"
+                className="cartoon-btn flex items-center gap-1.5 px-4 py-2 bg-[#FFB703] hover:bg-[#FFC933] text-[#1E1410] font-fredoka font-bold text-xs sm:text-sm rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none cursor-pointer flex-shrink-0"
               >
                 <span>📖</span>
                 <span>Open Storybook</span>
