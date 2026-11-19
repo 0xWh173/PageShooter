@@ -1,7 +1,3 @@
-import { buildServer } from "../apps/server/dist/server.js";
-import { loadConfig } from "../apps/server/dist/config.js";
-import { RoomManager } from "../apps/server/dist/rooms/roomManager.js";
-
 const FALLBACK_VERCEL_JWT_SECRET =
   process.env.JWT_SECRET ||
   "vercel_serverless_pageshooter_jwt_secret_key_auto_generated_2026_99x";
@@ -9,6 +5,14 @@ const FALLBACK_VERCEL_JWT_SECRET =
 async function getVercelFastifyApp(hostHeader) {
   if (!globalThis.__pageshooterVercelAppPromise) {
     globalThis.__pageshooterVercelAppPromise = (async () => {
+      // Set env vars BEFORE dynamically importing server/config so module-level config & token.ts pick them up
+      if (!process.env.NODE_ENV) {
+        process.env.NODE_ENV = "production";
+      }
+      if (!process.env.JWT_SECRET) {
+        process.env.JWT_SECRET = FALLBACK_VERCEL_JWT_SECRET;
+      }
+
       const originList = [
         process.env.CORS_ORIGIN || "",
         hostHeader ? `https://${hostHeader}` : "",
@@ -18,11 +22,18 @@ async function getVercelFastifyApp(hostHeader) {
       ]
         .filter(Boolean)
         .join(",");
+      process.env.CORS_ORIGIN = originList;
+
+      const [{ buildServer }, { loadConfig }, { RoomManager }] = await Promise.all([
+        import("../apps/server/dist/server.js"),
+        import("../apps/server/dist/config.js"),
+        import("../apps/server/dist/rooms/roomManager.js")
+      ]);
 
       const cfg = loadConfig({
         ...process.env,
-        NODE_ENV: process.env.NODE_ENV || "production",
-        JWT_SECRET: FALLBACK_VERCEL_JWT_SECRET,
+        NODE_ENV: process.env.NODE_ENV,
+        JWT_SECRET: process.env.JWT_SECRET,
         CORS_ORIGIN: originList
       });
 
@@ -44,10 +55,6 @@ async function getVercelFastifyApp(hostHeader) {
 }
 
 export default async function handler(req, res) {
-  // Dynamically ensure current Vercel deployment domain is allowed by origin checks
-  if (req.headers.host && !process.env.CORS_ORIGIN) {
-    process.env.CORS_ORIGIN = `https://${req.headers.host},http://${req.headers.host}`;
-  }
   const app = await getVercelFastifyApp(req.headers.host);
   app.server.emit("request", req, res);
 }

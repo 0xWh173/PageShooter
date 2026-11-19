@@ -99,8 +99,14 @@ export const WaitingRoomScreen: React.FC<WaitingRoomScreenProps> = ({
       }
     });
 
+    const unsubscribeError = webSocketClient.onError((err) => {
+      setIsStarting(false);
+      setErrorMessage(err instanceof Error ? err.message : "A room error occurred.");
+    });
+
     return () => {
       unsubscribe();
+      unsubscribeError();
     };
   }, [webSocketClient, currentUser, onMatchStarted]);
 

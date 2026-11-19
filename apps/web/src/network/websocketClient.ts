@@ -418,14 +418,32 @@ export class WebSocketClient {
             type: "MATCH_STARTED",
             matchState: res.match
           });
+          if (res.currentCommitment) {
+            await this.handleServerMessage({
+              type: "ROLL_COMMITMENT",
+              turnNumber: res.currentCommitment.turnNumber,
+              commitmentHash: res.currentCommitment.commitmentHash
+            });
+          }
           break;
         }
         case "ROLL_REQUEST": {
+          const rolledTurnNumber =
+            this.syncStore.getState().match?.turn.turnNumber ?? 1;
           const res = await apiClient.rollTurn(
             message.roomCode,
             message.expectedStateVersion,
             message.correlationId
           );
+          if (this.syncStore.getState().activeCommitment?.turnNumber === rolledTurnNumber) {
+            await this.handleServerMessage({
+              type: "ROLL_REVEALED",
+              turnNumber: rolledTurnNumber,
+              outcome: res.rollOutcome,
+              pageNumber: res.pageNumber,
+              seed: res.seed
+            });
+          }
           await this.handleServerMessage({
             type: "MATCH_STATE_SYNC",
             matchState: res.matchState,
