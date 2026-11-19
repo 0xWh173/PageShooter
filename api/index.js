@@ -12,11 +12,16 @@ async function getVercelFastifyApp(hostHeader) {
       if (!process.env.JWT_SECRET) {
         process.env.JWT_SECRET = FALLBACK_VERCEL_JWT_SECRET;
       }
+      if (!process.env.COOKIE_SAMESITE) {
+        process.env.COOKIE_SAMESITE = "none";
+      }
 
+      const discordAppId = process.env.DISCORD_CLIENT_ID || "1568155504415481956";
       const originList = [
         process.env.CORS_ORIGIN || "",
         hostHeader ? `https://${hostHeader}` : "",
         hostHeader ? `http://${hostHeader}` : "",
+        `https://${discordAppId}.discordsays.com`,
         "http://localhost:3234",
         "http://localhost:5173"
       ]

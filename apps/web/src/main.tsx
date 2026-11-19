@@ -1,7 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App.js";
+import { initDiscordActivity } from "./discord/discordSdk.js";
 import "./index.css";
+
+void initDiscordActivity();
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {
