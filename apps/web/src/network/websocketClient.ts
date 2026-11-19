@@ -12,6 +12,7 @@ export interface WebSocketClientOptions {
   syncStore?: SyncStore;
   autoReconnect?: boolean;
   enableHttpFallback?: boolean;
+  preferHttpFallback?: boolean;
 }
 
 export type MessageListener = (message: WSServerMessage) => void;
@@ -32,6 +33,7 @@ export class WebSocketClient {
   private token?: string;
   private autoReconnect: boolean;
   private enableHttpFallback: boolean;
+  private preferHttpFallback: boolean;
   private httpFallbackActive = false;
   private httpPollTimer: ReturnType<typeof setInterval> | null = null;
   private activeRoomCode: string | null = null;
@@ -53,6 +55,7 @@ export class WebSocketClient {
     this.token = options.token;
     this.autoReconnect = options.autoReconnect ?? false;
     this.enableHttpFallback = options.enableHttpFallback ?? false;
+    this.preferHttpFallback = options.preferHttpFallback ?? false;
     this.syncStore = options.syncStore ?? new SyncStore();
   }
 
@@ -93,6 +96,13 @@ export class WebSocketClient {
       this.reconnectTimer = null;
     }
     this.setStatus(this.reconnectAttempts > 0 ? "RECONNECTING" : "CONNECTING");
+
+    if (this.preferHttpFallback && this.enableHttpFallback) {
+      this.httpFallbackActive = true;
+      this.connected = true;
+      this.setStatus("CONNECTED");
+      return;
+    }
 
     this.connectPromise = new Promise<void>((resolve, reject) => {
       this.connectResolve = resolve;

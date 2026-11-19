@@ -79,7 +79,28 @@ export const AppContent: React.FC = () => {
   const qaView = getQaViewParam();
   const { user, isAuthenticated, isColdStarting } = useAuth();
 
-  const [gameMode, setGameMode] = useState<"OFFLINE" | "ONLINE">("OFFLINE");
+  const [gameMode, setGameModeState] = useState<"OFFLINE" | "ONLINE">(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = window.sessionStorage?.getItem("pageshooter_game_mode");
+        if (saved === "ONLINE" || saved === "OFFLINE") return saved;
+      } catch {
+        // Ignore sessionStorage errors
+      }
+    }
+    return "OFFLINE";
+  });
+
+  const setGameMode = useCallback((mode: "OFFLINE" | "ONLINE") => {
+    setGameModeState(mode);
+    if (typeof window !== "undefined") {
+      try {
+        window.sessionStorage?.setItem("pageshooter_game_mode", mode);
+      } catch {
+        // Ignore sessionStorage errors
+      }
+    }
+  }, []);
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [audioModalOpen, setAudioModalOpen] = useState<boolean>(false);
   const [activeOnlineRoom, setActiveOnlineRoom] = useState<PublicRoomState | null>(null);
@@ -238,7 +259,7 @@ export const AppContent: React.FC = () => {
 
   // Online room session recovery (F5 refresh & active participation discovery)
   useEffect(() => {
-    if (gameMode === "ONLINE" && isAuthenticated && user) {
+    if (isAuthenticated && user) {
       let isSubscribed = true;
       apiClient
         .getMyActiveRoom()
@@ -249,6 +270,7 @@ export const AppContent: React.FC = () => {
             .then(({ room }) => {
               if (isSubscribed) {
                 setActiveOnlineRoom(room);
+                setGameMode("ONLINE");
               }
             })
             .catch(() => {});
@@ -260,15 +282,24 @@ export const AppContent: React.FC = () => {
     } else if (!isAuthenticated) {
       setActiveOnlineRoom(null);
     }
-  }, [gameMode, isAuthenticated, user]);
+  }, [gameMode, isAuthenticated, user, setGameMode]);
 
   // Connect WebSocket when entering an active online chamber
   useEffect(() => {
     if (gameMode === "ONLINE" && activeOnlineRoom && isAuthenticated && user) {
+      const metaEnv = (import.meta as unknown as { env?: Record<string, string | undefined> })?.env;
+      const isHostedWithoutExplicitWs =
+        typeof window !== "undefined" &&
+        window.location &&
+        window.location.hostname !== "localhost" &&
+        window.location.hostname !== "127.0.0.1" &&
+        !metaEnv?.VITE_WS_URL;
+
       const client = new WebSocketClient({
         url: getWsBaseUrl(),
         autoReconnect: true,
-        enableHttpFallback: true
+        enableHttpFallback: true,
+        preferHttpFallback: Boolean(isHostedWithoutExplicitWs)
       });
 
       let isMounted = true;
