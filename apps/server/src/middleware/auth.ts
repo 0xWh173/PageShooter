@@ -91,6 +91,13 @@ export async function verifyMutatingOrigin(request: FastifyRequest, reply: Fasti
 
     const origin = request.headers.origin;
     const allowedOrigins = currentConfig.CORS_ORIGIN.split(",").map((o) => o.trim());
+    const reqHost = (request.headers["x-forwarded-host"] || request.headers.host || "").toString().split(",")[0].trim();
+    const isSameHostOrigin =
+      Boolean(origin && reqHost) &&
+      (origin === `https://${reqHost}` || origin === `http://${reqHost}`);
+    const isDiscordActivityOrigin =
+      currentConfig.COOKIE_SAMESITE === "none" &&
+      Boolean(origin && /^https:\/\/[a-z0-9-]+\.discordsays\.com$/i.test(origin));
 
     if (!origin) {
       if (currentConfig.NODE_ENV !== "test") {
@@ -100,7 +107,12 @@ export async function verifyMutatingOrigin(request: FastifyRequest, reply: Fasti
           message: "Missing Origin header on state-changing request"
         });
       }
-    } else if (!allowedOrigins.includes(origin) && !allowedOrigins.includes("*")) {
+    } else if (
+      !isSameHostOrigin &&
+      !isDiscordActivityOrigin &&
+      !allowedOrigins.includes(origin) &&
+      !allowedOrigins.includes("*")
+    ) {
       return reply.status(403).send({
         statusCode: 403,
         error: "CSRF_ORIGIN_REJECTED",

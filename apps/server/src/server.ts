@@ -106,6 +106,13 @@ export function buildServer(options: ServerBuildOptions = {}): FastifyInstance {
         cb(null, true);
         return;
       }
+      if (
+        currentConfig.COOKIE_SAMESITE === "none" &&
+        /^https:\/\/[a-z0-9-]+\.discordsays\.com$/i.test(origin)
+      ) {
+        cb(null, true);
+        return;
+      }
       const corsError = new Error("CORS origin not allowed");
       (corsError as { statusCode?: number }).statusCode = 403;
       cb(corsError, false);
