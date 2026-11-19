@@ -108,7 +108,8 @@ export function buildServer(options: ServerBuildOptions = {}): FastifyInstance {
       }
       if (
         currentConfig.COOKIE_SAMESITE === "none" &&
-        /^https:\/\/[a-z0-9-]+\.discordsays\.com$/i.test(origin)
+        (/^https:\/\/[a-z0-9-]+\.discordsays\.com$/i.test(origin) ||
+          /^https:\/\/pageshooter[a-z0-9-]*\.vercel\.app$/i.test(origin))
       ) {
         cb(null, true);
         return;
