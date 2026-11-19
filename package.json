@@ -9,7 +9,7 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "tsc -b && npm run build:web && npm run build:server",
+    "build": "tsc -b --force && npm run build:web && npm run build:server",
     "build:server": "npm run build --workspace=@pageshooter/server",
     "build:web": "npm run build --workspace=@pageshooter/web",
     "dev": "node tools/dev-all.js",
@@ -20,7 +20,7 @@
     "test:watch": "vitest",
     "manual-test": "tsx tools/manual-simulator/src/index.ts",
     "verify:scenarios": "tsx tools/manual-simulator/src/verify-scenarios.ts",
-    "typecheck": "tsc -b && npm run typecheck --workspace=@pageshooter/web && npm run typecheck --workspace=@pageshooter/server",
+    "typecheck": "tsc -b --force && npm run typecheck --workspace=@pageshooter/web && npm run typecheck --workspace=@pageshooter/server",
     "lint": "eslint \"packages/**/src/**/*.ts\" \"tools/**/src/**/*.ts\" \"apps/**/src/**/*.{ts,tsx}\"",
     "lint:check": "tsc -b --noEmit"
   },
