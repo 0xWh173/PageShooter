@@ -239,7 +239,8 @@ export function buildServer(options: ServerBuildOptions = {}): FastifyInstance {
   app.register(roomRoutes, {
     prefix: "/api/rooms",
     roomManager,
-    authService
+    authService,
+    broadcaster: wsGateway.broadcaster
   });
 
   // Periodic room expiration sweep (Requirement 3: every 60 seconds, unref'd, cleared on shutdown)

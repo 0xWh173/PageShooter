@@ -1,6 +1,10 @@
 import type {
   PublicUserProfile,
   PublicRoomState,
+  RoomChatMessage,
+  RoomEmojiEvent,
+  RoomLastRollInfo,
+  RoomLastShotInfo,
   UserActiveRoomResolution,
   RoomParticipant,
   MatchState,
@@ -236,10 +240,16 @@ export const apiClient = {
     expectedStateVersion?: number,
     commandId?: string
   ): Promise<{
-    matchState: MatchState;
-    rollOutcome: CellValue;
-    pageNumber: number;
-    seed: string;
+    roomCode?: string;
+    state: MatchState;
+    rollResult: {
+      turnNumber: number;
+      outcome: CellValue;
+      pageNumber: number;
+      seed: string;
+      commitmentHash: string;
+    };
+    lastRoll?: RoomLastRollInfo;
     nextCommitment: { turnNumber: number; commitmentHash: string } | null;
     events: MatchEvent[];
   }> {
@@ -256,7 +266,10 @@ export const apiClient = {
     expectedStateVersion?: number,
     commandId?: string
   ): Promise<{
-    matchState: MatchState;
+    roomCode?: string;
+    state: MatchState;
+    lastShot?: RoomLastShotInfo;
+    nextCommitment?: { turnNumber: number; commitmentHash: string } | null;
     events: MatchEvent[];
   }> {
     return request(`/api/rooms/${encodeURIComponent(roomCode)}/shoot`, {
@@ -267,6 +280,26 @@ export const apiClient = {
         expectedStateVersion,
         commandId
       })
+    });
+  },
+
+  async sendChat(
+    roomCode: string,
+    message: string
+  ): Promise<{ chat: RoomChatMessage }> {
+    return request(`/api/rooms/${encodeURIComponent(roomCode)}/chat`, {
+      method: "POST",
+      body: JSON.stringify({ message })
+    });
+  },
+
+  async sendEmoji(
+    roomCode: string,
+    emojiId: string
+  ): Promise<{ emoji: RoomEmojiEvent | null; throttled: boolean }> {
+    return request(`/api/rooms/${encodeURIComponent(roomCode)}/emoji`, {
+      method: "POST",
+      body: JSON.stringify({ emojiId })
     });
   }
 };

@@ -111,6 +111,11 @@ export class WSDispatcher {
         return;
       }
 
+      case "PONG": {
+        context.lastActivityAt = now;
+        return;
+      }
+
       case "JOIN_ROOM": {
         const activeRes = this.roomManager.resolveUserRoomParticipation(context.userId);
         if (activeRes?.hasActiveMatchParticipation && activeRes.roomCode !== message.roomCode) {
@@ -182,7 +187,8 @@ export class WSDispatcher {
       }
 
       case "LEAVE_ROOM": {
-        const result = this.roomManager.leaveRoom(message.roomCode, context.userId);
+        const normalizedCode = message.roomCode.trim().toUpperCase();
+        const result = this.roomManager.leaveRoom(normalizedCode, context.userId);
         this.broadcaster.unsubscribeFromRoom(context.socketId);
 
         this.broadcaster.sendToSocket(context.socket, {
@@ -191,13 +197,13 @@ export class WSDispatcher {
         });
 
         if (!result.roomDeleted) {
-          this.broadcaster.broadcastToRoom(message.roomCode, {
+          this.broadcaster.broadcastToRoom(normalizedCode, {
             type: "PLAYER_LEFT",
             userId: context.userId
           });
 
           if (result.newHostUserId) {
-            this.broadcaster.broadcastToRoom(message.roomCode, {
+            this.broadcaster.broadcastToRoom(normalizedCode, {
               type: "HOST_MIGRATED",
               newHostUserId: result.newHostUserId,
               reason: "HOST_LEFT"
@@ -208,13 +214,14 @@ export class WSDispatcher {
       }
 
       case "KICK_PLAYER": {
+        const normalizedCode = message.roomCode.trim().toUpperCase();
         const { kicked } = this.roomManager.kickPlayer(
-          message.roomCode,
+          normalizedCode,
           context.userId,
           message.targetUserId
         );
 
-        this.broadcaster.broadcastToRoom(message.roomCode, {
+        this.broadcaster.broadcastToRoom(normalizedCode, {
           type: "PLAYER_KICKED",
           userId: context.userId,
           targetUserId: message.targetUserId
@@ -222,7 +229,7 @@ export class WSDispatcher {
 
         // Unsubscribe the kicked participant's socket if connected
         const targetCtx = this.broadcaster.getContextByUserId(message.targetUserId);
-        if (targetCtx && targetCtx.roomCode === message.roomCode) {
+        if (targetCtx && targetCtx.roomCode === normalizedCode) {
           this.broadcaster.unsubscribeFromRoom(targetCtx.socketId);
         }
 
@@ -236,13 +243,14 @@ export class WSDispatcher {
 
       case "START_MATCH": {
         const result = this.roomManager.startMatch(message.roomCode, context.userId);
+        const targetRoomCode = result.room.roomCode;
 
-        this.broadcaster.broadcastToRoom(message.roomCode, {
+        this.broadcaster.broadcastToRoom(targetRoomCode, {
           type: "MATCH_STARTED",
           matchState: result.matchState
         });
 
-        this.broadcaster.broadcastToRoom(message.roomCode, {
+        this.broadcaster.broadcastToRoom(targetRoomCode, {
           type: "ROLL_COMMITMENT",
           turnNumber: result.commitment.turnNumber,
           commitmentHash: result.commitment.commitmentHash
@@ -254,18 +262,22 @@ export class WSDispatcher {
         const result = this.roomManager.executeRoll(message.roomCode, context.userId, {
           expectedStateVersion: message.expectedStateVersion
         });
+        const targetRoomCode = result.roomCode;
 
-        // 1. Broadcast the revealed roll with the secret seed
-        this.broadcaster.broadcastToRoom(message.roomCode, {
+        // 1. Broadcast the revealed roll with the secret seed + actor/consequence metadata
+        this.broadcaster.broadcastToRoom(targetRoomCode, {
           type: "ROLL_REVEALED",
           turnNumber: result.rollResult.turnNumber,
           outcome: result.rollResult.outcome,
           pageNumber: result.rollResult.pageNumber,
-          seed: result.rollResult.seed
+          seed: result.rollResult.seed,
+          actorPlayerId: result.lastRoll.actorPlayerId,
+          actorUsername: result.lastRoll.actorUsername,
+          consequenceText: result.lastRoll.consequenceText
         });
 
         // 2. Broadcast the state sync with events
-        this.broadcaster.broadcastToRoom(message.roomCode, {
+        this.broadcaster.broadcastToRoom(targetRoomCode, {
           type: "MATCH_STATE_SYNC",
           matchState: result.state,
           events: result.events
@@ -273,7 +285,7 @@ export class WSDispatcher {
 
         // 3. Broadcast next turn commitment if awaiting roll
         if (result.nextCommitment) {
-          this.broadcaster.broadcastToRoom(message.roomCode, {
+          this.broadcaster.broadcastToRoom(targetRoomCode, {
             type: "ROLL_COMMITMENT",
             turnNumber: result.nextCommitment.turnNumber,
             commitmentHash: result.nextCommitment.commitmentHash
@@ -282,7 +294,7 @@ export class WSDispatcher {
 
         // 4. If victory condition was triggered
         if (result.state.phase === "COMPLETED") {
-          this.broadcaster.broadcastToRoom(message.roomCode, {
+          this.broadcaster.broadcastToRoom(targetRoomCode, {
             type: "MATCH_COMPLETED",
             matchState: result.state,
             winnerPlayerId: result.state.winnerPlayerId ?? "",
@@ -300,9 +312,10 @@ export class WSDispatcher {
           message.targetCellValue,
           { expectedStateVersion: message.expectedStateVersion }
         );
+        const targetRoomCode = result.roomCode;
 
         // 1. Broadcast state sync with shot/destruction events
-        this.broadcaster.broadcastToRoom(message.roomCode, {
+        this.broadcaster.broadcastToRoom(targetRoomCode, {
           type: "MATCH_STATE_SYNC",
           matchState: result.state,
           events: result.events
@@ -310,7 +323,7 @@ export class WSDispatcher {
 
         // 2. Broadcast next turn commitment if turn advanced
         if (result.nextCommitment) {
-          this.broadcaster.broadcastToRoom(message.roomCode, {
+          this.broadcaster.broadcastToRoom(targetRoomCode, {
             type: "ROLL_COMMITMENT",
             turnNumber: result.nextCommitment.turnNumber,
             commitmentHash: result.nextCommitment.commitmentHash
@@ -319,7 +332,7 @@ export class WSDispatcher {
 
         // 3. If victory condition was triggered
         if (result.state.phase === "COMPLETED") {
-          this.broadcaster.broadcastToRoom(message.roomCode, {
+          this.broadcaster.broadcastToRoom(targetRoomCode, {
             type: "MATCH_COMPLETED",
             matchState: result.state,
             winnerPlayerId: result.state.winnerPlayerId ?? "",
@@ -378,14 +391,22 @@ export class WSDispatcher {
 
         context.lastChatMessageTime = now;
 
-        const role = room.players.get(context.userId)?.role || "SPECTATOR";
-        this.broadcaster.broadcastToRoom(message.roomCode, {
+        const { roomCode: targetRoomCode, chat } = this.roomManager.recordChatMessage(
+          room.roomCode,
+          context.userId,
+          context.username,
+          message.message,
+          { enforceRateLimit: false, now }
+        );
+
+        this.broadcaster.broadcastToRoom(targetRoomCode, {
           type: "CHAT_BROADCAST",
-          senderUserId: context.userId,
-          senderUsername: context.username,
-          role,
-          message: message.message,
-          timestamp: now
+          id: chat.id,
+          senderUserId: chat.senderUserId,
+          senderUsername: chat.senderUsername,
+          role: chat.role,
+          message: chat.message,
+          timestamp: chat.timestamp
         });
         return;
       }
@@ -421,12 +442,24 @@ export class WSDispatcher {
 
         context.emojiTimestamps.push(now);
 
-        this.broadcaster.broadcastToRoom(message.roomCode, {
-          type: "EMOJI_BROADCAST",
-          senderUserId: context.userId,
-          emojiId: message.emojiId,
-          timestamp: now
-        });
+        const { roomCode: targetRoomCode, emoji } = this.roomManager.recordEmojiReaction(
+          room.roomCode,
+          context.userId,
+          context.username,
+          message.emojiId,
+          { enforceRateLimit: false, now }
+        );
+
+        if (emoji) {
+          this.broadcaster.broadcastToRoom(targetRoomCode, {
+            type: "EMOJI_BROADCAST",
+            id: emoji.id,
+            senderUserId: emoji.senderUserId,
+            senderUsername: emoji.senderUsername,
+            emojiId: emoji.emojiId,
+            timestamp: emoji.timestamp
+          });
+        }
         return;
       }
 

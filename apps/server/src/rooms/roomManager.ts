@@ -2,6 +2,10 @@ import crypto from "node:crypto";
 import {
   type RoomParticipant,
   type PublicRoomState,
+  type RoomChatMessage,
+  type RoomEmojiEvent,
+  type RoomLastRollInfo,
+  type RoomLastShotInfo,
   type MatchState,
   type MatchEvent,
   type CellValue,
@@ -10,7 +14,13 @@ import {
   WAITING_ROOM_TTL_MS,
   COMPLETED_ROOM_TTL_MS,
   MIN_PLAYERS,
-  MAX_PLAYERS
+  MAX_PLAYERS,
+  CELL_PROGRESS_LABELS,
+  ALLOWED_EMOJI_IDS,
+  CHAT_COOLDOWN_MS,
+  CHAT_MUTE_DURATION_MS,
+  EMOJI_WINDOW_MS,
+  EMOJI_MAX_PER_WINDOW
 } from "@pageshooter/shared";
 import {
   createInitialMatchState,
@@ -62,7 +72,17 @@ export interface EphemeralRoom {
   temporaryReport: object | null;
   nextJoinSequence: number;
   disconnectedPlayers: Map<string, DisconnectRecord>;
+  recentChats: RoomChatMessage[];
+  recentEmojis: RoomEmojiEvent[];
+  lastRoll: RoomLastRollInfo | null;
+  lastShot: RoomLastShotInfo | null;
+  httpChatRate: Map<string, { lastChatAt: number; mutedUntil: number }>;
+  httpEmojiRate: Map<string, number[]>;
 }
+
+const MAX_RECENT_CHATS = 50;
+const MAX_RECENT_EMOJIS = 30;
+const EMOJI_BUFFER_TTL_MS = 10_000;
 
 export interface UserSummary {
   id: string;
@@ -71,8 +91,10 @@ export interface UserSummary {
 }
 
 export function sanitizeRoom(room: EphemeralRoom): PublicRoomState {
+  const now = Date.now();
   const players = Array.from(room.players.values()).sort((a, b) => a.joinSequence - b.joinSequence);
   const spectators = Array.from(room.spectators.values()).sort((a, b) => a.joinSequence - b.joinSequence);
+  const activeEmojis = room.recentEmojis.filter((e) => now - e.timestamp <= EMOJI_BUFFER_TTL_MS);
 
   return {
     roomId: room.roomId,
@@ -91,7 +113,11 @@ export function sanitizeRoom(room: EphemeralRoom): PublicRoomState {
           turnNumber: room.currentTurnCommitment.turnNumber,
           commitmentHash: room.currentTurnCommitment.commitmentHash
         }
-      : null
+      : null,
+    recentChats: room.recentChats.slice(-MAX_RECENT_CHATS),
+    recentEmojis: activeEmojis,
+    lastRoll: room.lastRoll,
+    lastShot: room.lastShot
   };
 }
 
@@ -166,7 +192,13 @@ export class RoomManager {
       expiresAt: now + WAITING_ROOM_TTL_MS,
       temporaryReport: null,
       nextJoinSequence: 2,
-      disconnectedPlayers: new Map()
+      disconnectedPlayers: new Map(),
+      recentChats: [],
+      recentEmojis: [],
+      lastRoll: null,
+      lastShot: null,
+      httpChatRate: new Map(),
+      httpEmojiRate: new Map()
     };
 
     this.roomsById.set(roomId, room);
@@ -575,9 +607,11 @@ export class RoomManager {
     callerUserId: string,
     options?: CommandOptions
   ): {
+    roomCode: string;
     state: MatchState;
     events: MatchEvent[];
     rollResult: RevealedRoll;
+    lastRoll: RoomLastRollInfo;
     nextCommitment: PublicCommitment | null;
   } {
     const room = this.getRoomByCode(rawCode);
@@ -612,6 +646,24 @@ export class RoomManager {
     const { turnNumber, seed, commitmentHash } = room.currentTurnCommitment;
     const { outcome, pageNumber } = deriveRollFromSeed(seed, room.matchState.matchId, turnNumber);
 
+    const preRollPlayer = room.matchState.players.find((p) => p.playerId === callerUserId);
+    const actorUsername = preRollPlayer?.username ?? room.players.get(callerUserId)?.username ?? "Scribe";
+    const preRollCell = preRollPlayer?.cells[outcome];
+
+    let consequenceText: string;
+    if (preRollCell?.destroyed) {
+      consequenceText = `💨 ${actorUsername} rolled Cell #${outcome} — already poofed! Turn passes!`;
+    } else if (preRollCell && preRollCell.progress < 5) {
+      const nextStage = (preRollCell.progress + 1) as 1 | 2 | 3 | 4 | 5;
+      const stageLabel = CELL_PROGRESS_LABELS[nextStage];
+      consequenceText =
+        nextStage === 5
+          ? `🔫 ${actorUsername} completed Cell #${outcome} (${stageLabel})! Ready next roll!`
+          : `✏️ ${actorUsername} drew ${stageLabel} on Cell #${outcome}!`;
+    } else {
+      consequenceText = `🎯 ${actorUsername} armed Cell #${outcome}! Pick an opponent to shoot!`;
+    }
+
     let engineResult;
     try {
       engineResult = applyRoll(room.matchState, callerUserId, outcome, pageNumber, options);
@@ -624,6 +676,17 @@ export class RoomManager {
     }
 
     room.matchState = engineResult.state;
+
+    const lastRoll: RoomLastRollInfo = {
+      turnNumber,
+      actorPlayerId: callerUserId,
+      actorUsername,
+      outcome,
+      pageNumber,
+      consequenceText,
+      rolledAt: Date.now()
+    };
+    room.lastRoll = lastRoll;
 
     const revealedRoll: RevealedRoll = {
       turnNumber,
@@ -653,9 +716,11 @@ export class RoomManager {
     }
 
     return {
+      roomCode: room.roomCode,
       state: room.matchState,
       events: engineResult.events,
       rollResult: revealedRoll,
+      lastRoll,
       nextCommitment: room.currentTurnCommitment
         ? {
             turnNumber: room.currentTurnCommitment.turnNumber,
@@ -672,8 +737,10 @@ export class RoomManager {
     targetCellValue: CellValue,
     options?: CommandOptions
   ): {
+    roomCode: string;
     state: MatchState;
     events: MatchEvent[];
+    lastShot: RoomLastShotInfo;
     nextCommitment: PublicCommitment | null;
   } {
     const room = this.getRoomByCode(rawCode);
@@ -705,6 +772,12 @@ export class RoomManager {
       throw new RoomError(400, "INVALID_TARGET", "Shooter cannot target their own column");
     }
 
+    const turnNumber = room.matchState.turn.turnNumber;
+    const shooterUsername =
+      room.matchState.players.find((p) => p.playerId === callerUserId)?.username ?? "Scribe";
+    const targetUsername =
+      room.matchState.players.find((p) => p.playerId === targetUserId)?.username ?? "Scribe";
+
     let engineResult;
     try {
       engineResult = applyShot(room.matchState, callerUserId, targetUserId, targetCellValue, options);
@@ -717,6 +790,18 @@ export class RoomManager {
     }
 
     room.matchState = engineResult.state;
+
+    const lastShot: RoomLastShotInfo = {
+      id: crypto.randomUUID(),
+      turnNumber,
+      shooterPlayerId: callerUserId,
+      shooterUsername,
+      targetPlayerId: targetUserId,
+      targetUsername,
+      targetCellValue,
+      shotAt: Date.now()
+    };
+    room.lastShot = lastShot;
 
     if (engineResult.state.phase === "COMPLETED") {
       room.phase = "COMPLETED";
@@ -735,8 +820,10 @@ export class RoomManager {
     }
 
     return {
+      roomCode: room.roomCode,
       state: room.matchState,
       events: engineResult.events,
+      lastShot,
       nextCommitment: room.currentTurnCommitment
         ? {
             turnNumber: room.currentTurnCommitment.turnNumber,
@@ -744,6 +831,114 @@ export class RoomManager {
           }
         : null
     };
+  }
+
+  recordChatMessage(
+    rawCode: string,
+    userId: string,
+    username: string,
+    rawMessage: string,
+    options?: { enforceRateLimit?: boolean; now?: number }
+  ): { roomCode: string; chat: RoomChatMessage } {
+    const now = options?.now ?? Date.now();
+    const room = this.getRoomByCode(rawCode, now);
+    if (!room) {
+      throw new RoomError(404, "ROOM_NOT_FOUND", "Room not found or has expired");
+    }
+    if (!room.players.has(userId) && !room.spectators.has(userId)) {
+      throw new RoomError(403, "NOT_IN_ROOM", "Must be in room to send chat messages");
+    }
+
+    const message = rawMessage.trim();
+    if (!message) {
+      throw new RoomError(400, "VALIDATION_ERROR", "Chat message cannot be empty");
+    }
+
+    if (options?.enforceRateLimit !== false) {
+      const rate = room.httpChatRate.get(userId) ?? { lastChatAt: 0, mutedUntil: 0 };
+      if (now < rate.mutedUntil) {
+        throw new RoomError(
+          429,
+          "MUTED",
+          "You are muted for sending messages too quickly. Please wait 30 seconds."
+        );
+      }
+      if (now - rate.lastChatAt < CHAT_COOLDOWN_MS) {
+        rate.mutedUntil = now + CHAT_MUTE_DURATION_MS;
+        room.httpChatRate.set(userId, rate);
+        throw new RoomError(
+          429,
+          "MUTED",
+          "You are muted for sending messages too quickly. Please wait 30 seconds."
+        );
+      }
+      rate.lastChatAt = now;
+      room.httpChatRate.set(userId, rate);
+    }
+
+    const role = room.players.get(userId)?.role || "SPECTATOR";
+    const chat: RoomChatMessage = {
+      id: crypto.randomUUID(),
+      senderUserId: userId,
+      senderUsername: username,
+      role,
+      message: message.slice(0, 200),
+      timestamp: now
+    };
+
+    room.recentChats.push(chat);
+    if (room.recentChats.length > MAX_RECENT_CHATS) {
+      room.recentChats.splice(0, room.recentChats.length - MAX_RECENT_CHATS);
+    }
+
+    return { roomCode: room.roomCode, chat };
+  }
+
+  recordEmojiReaction(
+    rawCode: string,
+    userId: string,
+    username: string,
+    emojiId: string,
+    options?: { enforceRateLimit?: boolean; now?: number }
+  ): { roomCode: string; emoji: RoomEmojiEvent | null } {
+    const now = options?.now ?? Date.now();
+    const room = this.getRoomByCode(rawCode, now);
+    if (!room) {
+      throw new RoomError(404, "ROOM_NOT_FOUND", "Room not found or has expired");
+    }
+    if (!room.players.has(userId) && !room.spectators.has(userId)) {
+      throw new RoomError(403, "NOT_IN_ROOM", "Must be in room to send emoji reactions");
+    }
+
+    if (!ALLOWED_EMOJI_IDS.includes(emojiId as (typeof ALLOWED_EMOJI_IDS)[number])) {
+      throw new RoomError(400, "VALIDATION_ERROR", `Invalid emoji ID: ${emojiId}`);
+    }
+
+    if (options?.enforceRateLimit !== false) {
+      const windowStart = now - EMOJI_WINDOW_MS;
+      const existing = (room.httpEmojiRate.get(userId) ?? []).filter((t) => t > windowStart);
+      if (existing.length >= EMOJI_MAX_PER_WINDOW) {
+        room.httpEmojiRate.set(userId, existing);
+        return { roomCode: room.roomCode, emoji: null };
+      }
+      existing.push(now);
+      room.httpEmojiRate.set(userId, existing);
+    }
+
+    const emoji: RoomEmojiEvent = {
+      id: crypto.randomUUID(),
+      senderUserId: userId,
+      senderUsername: username,
+      emojiId,
+      timestamp: now
+    };
+
+    room.recentEmojis = room.recentEmojis
+      .filter((e) => now - e.timestamp <= EMOJI_BUFFER_TTL_MS)
+      .slice(-(MAX_RECENT_EMOJIS - 1));
+    room.recentEmojis.push(emoji);
+
+    return { roomCode: room.roomCode, emoji };
   }
 
   getMatch(rawCode: string): {

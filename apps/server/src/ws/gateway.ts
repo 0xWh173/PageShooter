@@ -149,6 +149,7 @@ export class WebSocketGateway {
       socket,
       isAlive: true,
       superseded: false,
+      lastActivityAt: Date.now(),
       lastChatMessageTime: 0,
       mutedUntil: 0,
       emojiTimestamps: []
@@ -171,11 +172,19 @@ export class WebSocketGateway {
       hasActiveMatchParticipation: activeResolution?.hasActiveMatchParticipation
     });
 
-    // 15-second connection liveness heartbeat
+    // 15-second connection liveness heartbeat + zombie socket cleanup (45s silence threshold)
     const heartbeat = setInterval(() => {
-      if (socket.readyState === 1 /* OPEN */) {
-        this.broadcaster.sendToSocket(socket, { type: "PING" });
+      if (socket.readyState !== 1 /* OPEN */) return;
+      if (Date.now() - context.lastActivityAt > WS_HEARTBEAT_INTERVAL_MS * 3) {
+        try {
+          socket.terminate?.();
+          if (socket.readyState === 1) socket.close(1001, "Heartbeat timeout");
+        } catch {
+          // Ignore
+        }
+        return;
       }
+      this.broadcaster.sendToSocket(socket, { type: "PING" });
     }, WS_HEARTBEAT_INTERVAL_MS);
 
     if (typeof heartbeat.unref === "function") {
@@ -185,6 +194,7 @@ export class WebSocketGateway {
 
     // Message handler
     socket.on("message", (rawData) => {
+      context.lastActivityAt = Date.now();
       this.dispatcher.dispatchMessage(context, rawData);
     });
 

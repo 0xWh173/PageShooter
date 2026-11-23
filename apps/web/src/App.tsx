@@ -38,6 +38,7 @@ import { apiClient, getWsBaseUrl, WebSocketClient } from "./network/index.js";
 interface CinematicState {
   pageNumber: number;
   outcome: CellValue;
+  actorName: string;
   consequenceText: string;
   nextMatchState: MatchState;
 }
@@ -182,6 +183,7 @@ export const AppContent: React.FC = () => {
       return {
         pageNumber: 248,
         outcome: 8,
+        actorName: "Barnaby",
         consequenceText: "🎉 Barnaby learned Arms stage!",
         nextMatchState: state
       };
@@ -331,10 +333,27 @@ export const AppContent: React.FC = () => {
           // Socket connection failure handled gracefully
         });
 
+      const unsubscribeStore = client.syncStore.subscribe(() => {
+        const syncedRoom = client.syncStore.getState().room;
+        if (!syncedRoom) return;
+        setActiveOnlineRoom((prev) => {
+          if (!prev || prev.roomCode !== syncedRoom.roomCode) return prev;
+          if (
+            prev.phase !== syncedRoom.phase ||
+            prev.playerCount !== syncedRoom.playerCount ||
+            prev.hostUserId !== syncedRoom.hostUserId
+          ) {
+            return syncedRoom;
+          }
+          return prev;
+        });
+      });
+
       setWsClient(client);
 
       return () => {
         isMounted = false;
+        unsubscribeStore();
         client.disconnect();
         setWsClient(null);
       };
@@ -461,6 +480,7 @@ export const AppContent: React.FC = () => {
     setCinematicData({
       pageNumber,
       outcome,
+      actorName: currentPlayer.username,
       consequenceText,
       nextMatchState: nextState
     });
@@ -715,6 +735,7 @@ export const AppContent: React.FC = () => {
                 <BookCinematic
                   pageNumber={cinematicData.pageNumber}
                   outcome={cinematicData.outcome}
+                  actorName={cinematicData.actorName}
                   consequenceText={cinematicData.consequenceText}
                   onComplete={handleCinematicComplete}
                 />

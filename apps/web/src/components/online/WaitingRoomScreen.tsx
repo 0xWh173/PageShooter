@@ -9,7 +9,8 @@ import { MIN_PLAYERS, MAX_PLAYERS } from "@pageshooter/shared";
 import { HandDrawnStickman } from "../../characters/components/HandDrawnStickman.js";
 import { apiClient, ApiError } from "../../network/apiClient.js";
 import type { WebSocketClient } from "../../network/websocketClient.js";
-import type { SyncStore } from "../../network/syncStore.js";
+import type { SyncStore, ChatMessage } from "../../network/syncStore.js";
+import { ChatAndEmojiHUD } from "./ChatAndEmojiHUD.js";
 
 export interface WaitingRoomScreenProps {
   room: PublicRoomState;
@@ -30,6 +31,7 @@ export const WaitingRoomScreen: React.FC<WaitingRoomScreenProps> = ({
 }) => {
   // Live room state synced via SyncStore or updated from props
   const [currentRoom, setCurrentRoom] = useState<PublicRoomState>(initialRoom);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => initialRoom.recentChats ?? []);
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isStarting, setIsStarting] = useState<boolean>(false);
   const [isLeaving, setIsLeaving] = useState<boolean>(false);
@@ -48,6 +50,9 @@ export const WaitingRoomScreen: React.FC<WaitingRoomScreenProps> = ({
 
     // Apply snapshot if room is present in store
     const storeState = store.getState();
+    if (storeState.chatMessages.length > 0) {
+      setChatMessages(storeState.chatMessages);
+    }
     if (storeState.room && storeState.room.roomCode === currentRoom.roomCode) {
       setCurrentRoom(storeState.room);
       if (storeState.room.phase === "ACTIVE" && storeState.match && onMatchStarted) {
@@ -57,6 +62,7 @@ export const WaitingRoomScreen: React.FC<WaitingRoomScreenProps> = ({
 
     const unsubscribe = store.subscribe(() => {
       const updated = store.getState();
+      setChatMessages(updated.chatMessages);
       if (updated.room && updated.room.roomCode === currentRoom.roomCode) {
         setCurrentRoom(updated.room);
 
@@ -233,7 +239,7 @@ export const WaitingRoomScreen: React.FC<WaitingRoomScreenProps> = ({
   }, [currentRoom.players]);
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 py-6 animate-fadeIn text-[#f5ede0]">
+    <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 pt-6 pb-24 animate-fadeIn text-[#f5ede0]">
       {/* Kicked Modal */}
       {wasKicked && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
@@ -596,6 +602,16 @@ export const WaitingRoomScreen: React.FC<WaitingRoomScreenProps> = ({
           </p>
         )}
       </div>
+
+      {/* Live Lobby Chat & YouTube Live-Style Floating Emoji Reactions */}
+      {webSocketClient && (
+        <ChatAndEmojiHUD
+          roomCode={currentRoom.roomCode}
+          chatMessages={chatMessages}
+          webSocketClient={webSocketClient}
+          participants={[...currentRoom.players, ...currentRoom.spectators]}
+        />
+      )}
     </div>
   );
 };

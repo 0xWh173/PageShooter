@@ -9,6 +9,7 @@ export interface WSConnectionContext {
   socket: WebSocket;
   isAlive: boolean;
   superseded: boolean;
+  lastActivityAt: number;
   lastChatMessageTime: number;
   mutedUntil: number;
   emojiTimestamps: number[];

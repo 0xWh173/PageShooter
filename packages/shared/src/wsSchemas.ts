@@ -121,6 +121,10 @@ export const PingSchema = z.object({
   type: z.literal("PING")
 });
 
+export const PongSchema = z.object({
+  type: z.literal("PONG")
+});
+
 export const WSClientMessageSchema = z.discriminatedUnion("type", [
   JoinRoomSchema,
   JoinAsSpectatorSchema,
@@ -133,7 +137,8 @@ export const WSClientMessageSchema = z.discriminatedUnion("type", [
   SendEmojiReactionSchema,
   ReconnectMatchSchema,
   DownloadMatchReportSchema,
-  PingSchema
+  PingSchema,
+  PongSchema
 ]);
 
 export type WSClientMessage = z.infer<typeof WSClientMessageSchema>;
@@ -213,6 +218,9 @@ export interface WSServerRollRevealed {
   outcome: CellValue;
   pageNumber: number;
   seed: string;
+  actorPlayerId?: string;
+  actorUsername?: string;
+  consequenceText?: string;
 }
 
 export interface WSServerMatchStateSync {
@@ -261,6 +269,7 @@ export interface WSServerTemporaryReportData {
 
 export interface WSServerChatBroadcast {
   type: "CHAT_BROADCAST";
+  id?: string;
   senderUserId: string;
   senderUsername: string;
   role?: string;
@@ -270,7 +279,9 @@ export interface WSServerChatBroadcast {
 
 export interface WSServerEmojiBroadcast {
   type: "EMOJI_BROADCAST";
+  id?: string;
   senderUserId: string;
+  senderUsername?: string;
   emojiId: string;
   timestamp: number;
 }

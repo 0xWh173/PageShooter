@@ -9,6 +9,7 @@ import type {
 import { assertRollCommitmentValid } from "./clientVerification.js";
 
 export interface ChatMessage {
+  id?: string;
   senderUserId: string;
   senderUsername: string;
   role?: string;
@@ -80,6 +81,22 @@ export class SyncStore {
     }
     if (snapshot.currentCommitment) {
       this.state.activeCommitment = snapshot.currentCommitment;
+    }
+    if (snapshot.recentChats && snapshot.recentChats.length > 0) {
+      const merged = [...this.state.chatMessages];
+      for (const chat of snapshot.recentChats) {
+        const exists = merged.some((m) =>
+          chat.id && m.id
+            ? m.id === chat.id
+            : m.senderUserId === chat.senderUserId &&
+              m.timestamp === chat.timestamp &&
+              m.message === chat.message
+        );
+        if (!exists) {
+          merged.push(chat);
+        }
+      }
+      this.state.chatMessages = merged.slice(-50);
     }
     this.notify();
   }
@@ -221,6 +238,11 @@ export class SyncStore {
     this.notify();
   }
 
+  applyPolledRoll(turnNumber: number, outcome: CellValue, pageNumber: number): void {
+    this.state.lastVerifiedRoll = { turnNumber, outcome, pageNumber };
+    this.notify();
+  }
+
   applyMatchStateSync(matchState: MatchState, events?: MatchEvent[]): void {
     this.state.match = matchState;
     if (this.state.room) {
@@ -318,7 +340,15 @@ export class SyncStore {
   }
 
   applyChatBroadcast(chat: ChatMessage): void {
-    this.state.chatMessages = [...this.state.chatMessages, chat];
+    const exists = this.state.chatMessages.some((m) =>
+      chat.id && m.id
+        ? m.id === chat.id
+        : m.senderUserId === chat.senderUserId &&
+          m.timestamp === chat.timestamp &&
+          m.message === chat.message
+    );
+    if (exists) return;
+    this.state.chatMessages = [...this.state.chatMessages, chat].slice(-50);
     this.notify();
   }
 

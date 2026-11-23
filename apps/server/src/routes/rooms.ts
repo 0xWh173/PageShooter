@@ -1,15 +1,25 @@
 import { type FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { GameRuleError } from "@pageshooter/shared";
+import { CHAT_MESSAGE_MAX_CHARS, GameRuleError } from "@pageshooter/shared";
 import { RoomManager, RoomError, sanitizeRoom } from "../rooms/roomManager.js";
 import { verifyRollCommitment } from "../game/commitment.js";
 import { requireAuth, verifyMutatingOrigin, checkPreCommitRevocation } from "../middleware/auth.js";
 import { AuthService } from "../services/authService.js";
+import type { RoomBroadcaster } from "../ws/roomBroadcaster.js";
 
 export interface RoomRoutesOptions {
   roomManager: RoomManager;
   authService: AuthService;
+  broadcaster?: RoomBroadcaster;
 }
+
+const chatBodySchema = z.object({
+  message: z.string().trim().min(1).max(CHAT_MESSAGE_MAX_CHARS)
+});
+
+const emojiBodySchema = z.object({
+  emojiId: z.string().min(1)
+});
 
 const kickBodySchema = z.object({
   targetUserId: z.string().uuid("Invalid target user ID")
@@ -51,7 +61,7 @@ const verifyRollBodySchema = z.object({
 });
 
 export const roomRoutes: FastifyPluginAsync<RoomRoutesOptions> = async (fastify, options) => {
-  const { roomManager, authService } = options;
+  const { roomManager, authService, broadcaster } = options;
 
   async function resolveRouteUser(tokenUser: { userId: string; username: string }) {
     try {
@@ -271,6 +281,17 @@ export const roomRoutes: FastifyPluginAsync<RoomRoutesOptions> = async (fastify,
 
       const { roomCode } = request.params as { roomCode: string };
       const result = roomManager.startMatch(roomCode, request.user!.userId);
+      if (broadcaster) {
+        broadcaster.broadcastToRoom(result.room.roomCode, {
+          type: "MATCH_STARTED",
+          matchState: result.matchState
+        });
+        broadcaster.broadcastToRoom(result.room.roomCode, {
+          type: "ROLL_COMMITMENT",
+          turnNumber: result.commitment.turnNumber,
+          commitmentHash: result.commitment.commitmentHash
+        });
+      }
       return reply.status(200).send({
         room: sanitizeRoom(result.room),
         match: result.matchState,
@@ -295,6 +316,38 @@ export const roomRoutes: FastifyPluginAsync<RoomRoutesOptions> = async (fastify,
       }
       const options = parseResult.data;
       const result = roomManager.executeRoll(roomCode, request.user!.userId, options);
+      if (broadcaster) {
+        broadcaster.broadcastToRoom(result.roomCode, {
+          type: "ROLL_REVEALED",
+          turnNumber: result.rollResult.turnNumber,
+          outcome: result.rollResult.outcome,
+          pageNumber: result.rollResult.pageNumber,
+          seed: result.rollResult.seed,
+          actorPlayerId: result.lastRoll.actorPlayerId,
+          actorUsername: result.lastRoll.actorUsername,
+          consequenceText: result.lastRoll.consequenceText
+        });
+        broadcaster.broadcastToRoom(result.roomCode, {
+          type: "MATCH_STATE_SYNC",
+          matchState: result.state,
+          events: result.events
+        });
+        if (result.nextCommitment) {
+          broadcaster.broadcastToRoom(result.roomCode, {
+            type: "ROLL_COMMITMENT",
+            turnNumber: result.nextCommitment.turnNumber,
+            commitmentHash: result.nextCommitment.commitmentHash
+          });
+        }
+        if (result.state.phase === "COMPLETED") {
+          broadcaster.broadcastToRoom(result.roomCode, {
+            type: "MATCH_COMPLETED",
+            matchState: result.state,
+            winnerPlayerId: result.state.winnerPlayerId ?? "",
+            winReason: result.state.winReason ?? "LAST_PLAYER_STANDING"
+          });
+        }
+      }
       return reply.status(200).send(result);
     }
   );
@@ -321,7 +374,100 @@ export const roomRoutes: FastifyPluginAsync<RoomRoutesOptions> = async (fastify,
         targetCellValue,
         { expectedStateVersion, commandId }
       );
+      if (broadcaster) {
+        broadcaster.broadcastToRoom(result.roomCode, {
+          type: "MATCH_STATE_SYNC",
+          matchState: result.state,
+          events: result.events
+        });
+        if (result.nextCommitment) {
+          broadcaster.broadcastToRoom(result.roomCode, {
+            type: "ROLL_COMMITMENT",
+            turnNumber: result.nextCommitment.turnNumber,
+            commitmentHash: result.nextCommitment.commitmentHash
+          });
+        }
+        if (result.state.phase === "COMPLETED") {
+          broadcaster.broadcastToRoom(result.roomCode, {
+            type: "MATCH_COMPLETED",
+            matchState: result.state,
+            winnerPlayerId: result.state.winnerPlayerId ?? "",
+            winReason: result.state.winReason ?? "LAST_PLAYER_STANDING"
+          });
+        }
+      }
       return reply.status(200).send(result);
+    }
+  );
+
+  // POST /api/rooms/:roomCode/chat (Send Chat Message - HTTP Fallback & Mixed-Transport Parity)
+  fastify.post(
+    "/:roomCode/chat",
+    {
+      preHandler: [requireAuth, verifyMutatingOrigin]
+    },
+    async (request, reply) => {
+      if (!checkPreCommitRevocation(request, reply)) return;
+
+      const { roomCode } = request.params as { roomCode: string };
+      const parseResult = chatBodySchema.safeParse(request.body);
+      if (!parseResult.success) {
+        throw new RoomError(400, "VALIDATION_ERROR", "Invalid chat message");
+      }
+      const user = await resolveRouteUser(request.user!);
+      const { roomCode: targetRoomCode, chat } = roomManager.recordChatMessage(
+        roomCode,
+        user.id,
+        user.username,
+        parseResult.data.message
+      );
+      if (broadcaster) {
+        broadcaster.broadcastToRoom(targetRoomCode, {
+          type: "CHAT_BROADCAST",
+          id: chat.id,
+          senderUserId: chat.senderUserId,
+          senderUsername: chat.senderUsername,
+          role: chat.role,
+          message: chat.message,
+          timestamp: chat.timestamp
+        });
+      }
+      return reply.status(200).send({ chat });
+    }
+  );
+
+  // POST /api/rooms/:roomCode/emoji (Send Emoji Reaction - HTTP Fallback & Mixed-Transport Parity)
+  fastify.post(
+    "/:roomCode/emoji",
+    {
+      preHandler: [requireAuth, verifyMutatingOrigin]
+    },
+    async (request, reply) => {
+      if (!checkPreCommitRevocation(request, reply)) return;
+
+      const { roomCode } = request.params as { roomCode: string };
+      const parseResult = emojiBodySchema.safeParse(request.body);
+      if (!parseResult.success) {
+        throw new RoomError(400, "VALIDATION_ERROR", "Invalid emoji reaction");
+      }
+      const user = await resolveRouteUser(request.user!);
+      const { roomCode: targetRoomCode, emoji } = roomManager.recordEmojiReaction(
+        roomCode,
+        user.id,
+        user.username,
+        parseResult.data.emojiId
+      );
+      if (emoji && broadcaster) {
+        broadcaster.broadcastToRoom(targetRoomCode, {
+          type: "EMOJI_BROADCAST",
+          id: emoji.id,
+          senderUserId: emoji.senderUserId,
+          senderUsername: emoji.senderUsername,
+          emojiId: emoji.emojiId,
+          timestamp: emoji.timestamp
+        });
+      }
+      return reply.status(200).send({ emoji, throttled: !emoji });
     }
   );
 

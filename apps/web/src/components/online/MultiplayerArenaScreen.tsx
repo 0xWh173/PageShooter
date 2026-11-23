@@ -31,6 +31,7 @@ import { ServerRestartModal } from "./ServerRestartModal.js";
 interface OnlineCinematicData {
   pageNumber: number;
   outcome: CellValue;
+  actorName: string;
   consequenceText: string;
 }
 
@@ -76,8 +77,11 @@ export const MultiplayerArenaScreen: React.FC<MultiplayerArenaScreenProps> = ({
   const [combatData, setCombatData] = useState<OnlineCombatData | null>(null);
   const [eliminatedNoticePlayer, setEliminatedNoticePlayer] = useState<PlayerState | null>(null);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  const [showYourTurnSplash, setShowYourTurnSplash] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
 
   const prevEliminatedIdsRef = useRef<Set<string>>(new Set());
+  const prevCanRollRef = useRef<boolean>(false);
 
   // Track connection status changes
   useEffect(() => {
@@ -129,14 +133,19 @@ export const MultiplayerArenaScreen: React.FC<MultiplayerArenaScreenProps> = ({
           );
           return;
         }
-        const actor = current.match?.players.find(
-          (p) => p.playerId === current.match?.turn.currentPlayerId
-        );
-        const actorName = actor?.username ?? "Scribe";
+        const actor = msg.actorPlayerId
+          ? current.match?.players.find((p) => p.playerId === msg.actorPlayerId)
+          : current.match?.players.find(
+              (p) => p.playerId === current.match?.turn.currentPlayerId
+            );
+        const actorName = msg.actorUsername ?? actor?.username ?? "Scribe";
         setCinematicData({
           pageNumber: msg.pageNumber,
           outcome: msg.outcome,
-          consequenceText: `${actorName} turned to Page ${msg.pageNumber} (Cell #${msg.outcome})`
+          actorName,
+          consequenceText:
+            msg.consequenceText ??
+            `${actorName} turned to Page ${msg.pageNumber} (Cell #${msg.outcome})`
         });
       } else if (msg.type === "MATCH_STATE_SYNC") {
         setIsPendingRoll(false);
@@ -161,6 +170,8 @@ export const MultiplayerArenaScreen: React.FC<MultiplayerArenaScreenProps> = ({
                   shotEvent.cellValue
                 ] ?? "clover";
 
+              setIsShaking(true);
+              setTimeout(() => setIsShaking(false), 380);
               setCombatData({
                 shooterName: shooter.username,
                 shooterPosition: shooter.position,
@@ -186,6 +197,18 @@ export const MultiplayerArenaScreen: React.FC<MultiplayerArenaScreenProps> = ({
   const isSpectator = selectIsSpectator(syncState, currentUserId);
   const canRoll = selectCanRoll(syncState, currentUserId);
   const canShoot = selectCanShoot(syncState, currentUserId);
+
+  // Brief non-blocking "YOUR TURN!" comic splash whenever it becomes this player's turn to roll
+  useEffect(() => {
+    if (canRoll && !prevCanRollRef.current && match?.phase === "ACTIVE") {
+      setShowYourTurnSplash(true);
+      soundManager.playTurnChime();
+      const timer = setTimeout(() => setShowYourTurnSplash(false), 1500);
+      prevCanRollRef.current = canRoll;
+      return () => clearTimeout(timer);
+    }
+    prevCanRollRef.current = canRoll;
+  }, [canRoll, match?.phase]);
 
   const handleRoll = useCallback(() => {
     if (!webSocketClient || !match || !canRoll || isPendingRoll) return;
@@ -282,9 +305,25 @@ export const MultiplayerArenaScreen: React.FC<MultiplayerArenaScreenProps> = ({
         canRoll={canRoll}
         canShoot={canShoot}
         activeCommitmentHash={syncState.activeCommitment?.commitmentHash ?? null}
+        connectionStatus={connectionStatus}
+        transportMode={webSocketClient?.transportMode ?? "WS"}
+        onReconnect={() => webSocketClient?.reconnectNow()}
         onRoll={handleRoll}
         onLeaveMatch={handleLeave}
       />
+
+      {/* Non-blocking "YOUR TURN!" Comic Splash Banner */}
+      {showYourTurnSplash && !cinematicData && !combatData && (
+        <div
+          aria-live="assertive"
+          data-testid="your-turn-splash"
+          className="pointer-events-none fixed top-24 left-1/2 -translate-x-1/2 z-40"
+        >
+          <div className="animate-comic-turn-splash bg-[#E5C467] text-[#1C1917] border-4 border-[#1C1917] shadow-[6px_6px_0_#C85A48] px-6 py-2 font-bangers text-2xl sm:text-3xl tracking-widest uppercase">
+            ⚡ YOUR TURN! FLIP THE FOLIO! 📖
+          </div>
+        </div>
+      )}
 
       {/* Error / Verification Failure Banner */}
       {(errorBanner || syncState.verificationErrors.length > 0) && (
@@ -306,7 +345,11 @@ export const MultiplayerArenaScreen: React.FC<MultiplayerArenaScreenProps> = ({
       )}
 
       {/* Main Authoritative Battlefield Matrix & Combat Log */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-2 sm:px-4 py-3 flex flex-col overflow-hidden">
+      <main
+        className={`flex-1 w-full max-w-7xl mx-auto px-2 sm:px-4 py-3 flex flex-col overflow-hidden ${
+          isShaking ? "animate-comic-shake" : ""
+        }`}
+      >
         <Battlefield
           matchState={match}
           characterConfig={characterConfig}
@@ -316,11 +359,12 @@ export const MultiplayerArenaScreen: React.FC<MultiplayerArenaScreenProps> = ({
         <EventFeed events={syncState.events} />
       </main>
 
-      {/* Verifiable 4-6s Storybook Roll Cinematic */}
+      {/* Verifiable 4-6s Storybook Roll Cinematic (visible to ALL players & spectators) */}
       {cinematicData && (
         <BookCinematic
           pageNumber={cinematicData.pageNumber}
           outcome={cinematicData.outcome}
+          actorName={cinematicData.actorName}
           consequenceText={cinematicData.consequenceText}
           onComplete={handleCinematicComplete}
         />

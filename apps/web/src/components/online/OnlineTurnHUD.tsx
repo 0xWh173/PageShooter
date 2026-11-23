@@ -1,5 +1,6 @@
 import React from "react";
 import type { MatchState } from "@pageshooter/shared";
+import type { ConnectionStatus } from "../../network/index.js";
 
 interface OnlineTurnHUDProps {
   matchState: MatchState;
@@ -10,6 +11,9 @@ interface OnlineTurnHUDProps {
   canRoll: boolean;
   canShoot: boolean;
   activeCommitmentHash?: string | null;
+  connectionStatus?: ConnectionStatus;
+  transportMode?: "WS" | "HTTP_POLLING";
+  onReconnect?: () => void;
   onRoll: () => void;
   onLeaveMatch: () => void;
 }
@@ -23,6 +27,9 @@ export const OnlineTurnHUD: React.FC<OnlineTurnHUDProps> = ({
   canRoll,
   canShoot,
   activeCommitmentHash,
+  connectionStatus = "CONNECTED",
+  transportMode = "WS",
+  onReconnect,
   onRoll,
   onLeaveMatch
 }) => {
@@ -74,6 +81,46 @@ export const OnlineTurnHUD: React.FC<OnlineTurnHUDProps> = ({
               <span>SHA-256 Committed</span>
             </span>
           )}
+
+          {/* Connection Health Pill */}
+          <button
+            type="button"
+            onClick={() => {
+              if (connectionStatus !== "CONNECTED" && onReconnect) onReconnect();
+            }}
+            title={
+              connectionStatus === "CONNECTED"
+                ? transportMode === "WS"
+                  ? "Connected via real-time WebSocket"
+                  : "Connected via HTTP live sync"
+                : "Click to reconnect now"
+            }
+            data-testid="connection-health-pill"
+            className={`hidden sm:inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md border text-[10px] font-mono font-bold ${
+              connectionStatus === "CONNECTED"
+                ? transportMode === "WS"
+                  ? "bg-emerald-950/50 border-emerald-500/40 text-emerald-300"
+                  : "bg-amber-950/50 border-amber-500/40 text-amber-300"
+                : "bg-red-950/70 border-red-500/60 text-red-200 animate-pulse cursor-pointer"
+            }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                connectionStatus === "CONNECTED"
+                  ? transportMode === "WS"
+                    ? "bg-emerald-400"
+                    : "bg-amber-400"
+                  : "bg-red-400"
+              }`}
+            />
+            <span>
+              {connectionStatus === "CONNECTED"
+                ? transportMode === "WS"
+                  ? "Live"
+                  : "Sync"
+                : "Reconnect ↻"}
+            </span>
+          </button>
         </div>
 
         {/* Center: Authoritative Turn Status & Action */}

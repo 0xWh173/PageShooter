@@ -224,6 +224,44 @@ export interface RoomParticipant {
   joinedAt: number;     // Server timestamp
 }
 
+export interface RoomChatMessage {
+  id: string;
+  senderUserId: string;
+  senderUsername: string;
+  role?: string;
+  message: string;
+  timestamp: number;
+}
+
+export interface RoomEmojiEvent {
+  id: string;
+  senderUserId: string;
+  senderUsername: string;
+  emojiId: string;
+  timestamp: number;
+}
+
+export interface RoomLastRollInfo {
+  turnNumber: number;
+  actorPlayerId: string;
+  actorUsername: string;
+  outcome: CellValue;
+  pageNumber: number;
+  consequenceText?: string;
+  rolledAt: number;
+}
+
+export interface RoomLastShotInfo {
+  id: string;
+  turnNumber: number;
+  shooterPlayerId: string;
+  shooterUsername: string;
+  targetPlayerId: string;
+  targetUsername: string;
+  targetCellValue: CellValue;
+  shotAt: number;
+}
+
 export interface PublicRoomState {
   roomId: string;
   roomCode: string;
@@ -240,6 +278,10 @@ export interface PublicRoomState {
     turnNumber: number;
     commitmentHash: string;
   } | null;
+  recentChats?: RoomChatMessage[];
+  recentEmojis?: RoomEmojiEvent[];
+  lastRoll?: RoomLastRollInfo | null;
+  lastShot?: RoomLastShotInfo | null;
 }
 
 export interface UserActiveRoomResolution {

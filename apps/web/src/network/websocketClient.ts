@@ -4,7 +4,7 @@ import {
   type CellValue
 } from "@pageshooter/shared";
 import { SyncStore } from "./syncStore.js";
-import { apiClient } from "./apiClient.js";
+import { apiClient, ApiError } from "./apiClient.js";
 
 export interface WebSocketClientOptions {
   url: string;
@@ -39,7 +39,14 @@ export class WebSocketClient {
   private activeRoomCode: string | null = null;
   private manualDisconnect = false;
   private reconnectAttempts = 0;
+  private consecutiveWsFailures = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private watchdogTimer: ReturnType<typeof setInterval> | null = null;
+  private lastServerTrafficAt = 0;
+  private messageQueue: Promise<void> = Promise.resolve();
+  private seenEmojiIds = new Set<string>();
+  private lastPolledRollTurn = 0;
+  private lastPolledShotId: string | null = null;
   private status: ConnectionStatus = "DISCONNECTED";
   private connected = false;
   private messageListeners = new Set<MessageListener>();
@@ -61,6 +68,10 @@ export class WebSocketClient {
 
   get connectionStatus(): ConnectionStatus {
     return this.status;
+  }
+
+  get transportMode(): "WS" | "HTTP_POLLING" {
+    return this.httpFallbackActive ? "HTTP_POLLING" : "WS";
   }
 
   private setStatus(next: ConnectionStatus): void {
@@ -116,10 +127,11 @@ export class WebSocketClient {
     this.ws = socket;
 
     socket.onopen = () => {
-      // Waiting for AUTH_SUCCESS from server
+      this.lastServerTrafficAt = Date.now();
     };
 
-    socket.onmessage = async (event: MessageEvent) => {
+    socket.onmessage = (event: MessageEvent) => {
+      this.lastServerTrafficAt = Date.now();
       let message: WSServerMessage;
       try {
         message = JSON.parse(
@@ -130,12 +142,33 @@ export class WebSocketClient {
         return;
       }
 
-      await this.handleServerMessage(message);
+      // Serialize incoming frames strictly in arrival order so async SHA-256
+      // verification in ROLL_REVEALED finishes BEFORE MATCH_STATE_SYNC / ROLL_COMMITMENT.
+      this.messageQueue = this.messageQueue
+        .then(() => this.handleServerMessage(message))
+        .catch((err) => {
+          this.emitError(err);
+        });
     };
 
     socket.onclose = (event: CloseEvent) => {
-      if (this.enableHttpFallback && !this.manualDisconnect && event.code !== 4401 && event.code !== 4409) {
-        // Serverless HTTP environment (e.g. Vercel): seamlessly activate HTTP real-time polling fallback
+      this.stopWatchdog();
+      const wasConnected = this.connected;
+      this.connected = false;
+
+      if (!wasConnected) {
+        this.consecutiveWsFailures += 1;
+      }
+
+      if (
+        this.enableHttpFallback &&
+        !this.manualDisconnect &&
+        event.code !== 4401 &&
+        event.code !== 4409 &&
+        (this.preferHttpFallback || (!wasConnected && this.consecutiveWsFailures >= 2))
+      ) {
+        // Serverless HTTP environment (e.g. Vercel) or repeated WS upgrade failure:
+        // seamlessly activate HTTP real-time polling fallback
         this.httpFallbackActive = true;
         this.connected = true;
         this.setStatus("CONNECTED");
@@ -144,10 +177,13 @@ export class WebSocketClient {
           this.connectResolve = null;
           this.connectReject = null;
         }
+        const existingRoom = this.syncStore.getState().room?.roomCode ?? this.activeRoomCode;
+        if (existingRoom) {
+          this.startHttpRoomPolling(existingRoom);
+        }
         return;
       }
 
-      this.connected = false;
       if (this.connectReject) {
         this.connectReject(
           new Error(`WebSocket closed before authentication (Code: ${event.code}, Reason: ${event.reason})`)
@@ -190,6 +226,9 @@ export class WebSocketClient {
       case "AUTH_SUCCESS": {
         this.connected = true;
         this.reconnectAttempts = 0;
+        this.consecutiveWsFailures = 0;
+        this.lastServerTrafficAt = Date.now();
+        this.startWatchdog();
         this.setStatus("CONNECTED");
         if (this.connectResolve) {
           this.connectResolve();
@@ -294,6 +333,7 @@ export class WebSocketClient {
 
       case "CHAT_BROADCAST": {
         this.syncStore.applyChatBroadcast({
+          id: message.id,
           senderUserId: message.senderUserId,
           senderUsername: message.senderUsername,
           role: message.role,
@@ -304,7 +344,11 @@ export class WebSocketClient {
       }
 
       case "PING": {
-        this.send({ type: "PING" });
+        try {
+          this.send({ type: "PONG" });
+        } catch {
+          // Ignore if closing
+        }
         break;
       }
 
@@ -327,7 +371,8 @@ export class WebSocketClient {
   }
 
   private startHttpRoomPolling(roomCode: string): void {
-    this.activeRoomCode = roomCode;
+    const normalized = roomCode.trim().toUpperCase();
+    this.activeRoomCode = normalized;
     if (this.httpPollTimer) {
       clearInterval(this.httpPollTimer);
     }
@@ -345,17 +390,86 @@ export class WebSocketClient {
           serverInstanceId: "vercel-serverless"
         });
 
+        // Replay unseen emoji reactions for HTTP-polling clients
+        if (room.recentEmojis && room.recentEmojis.length > 0) {
+          for (const emoji of room.recentEmojis) {
+            if (!this.seenEmojiIds.has(emoji.id)) {
+              this.seenEmojiIds.add(emoji.id);
+              if (this.seenEmojiIds.size > 100) {
+                const first = this.seenEmojiIds.values().next().value;
+                if (first) this.seenEmojiIds.delete(first);
+              }
+              await this.handleServerMessage({
+                type: "EMOJI_BROADCAST",
+                id: emoji.id,
+                senderUserId: emoji.senderUserId,
+                senderUsername: emoji.senderUsername,
+                emojiId: emoji.emojiId,
+                timestamp: emoji.timestamp
+              });
+            }
+          }
+        }
+
+        // Trigger comical book-turning animation for other polling players when a new roll happens
+        if (room.lastRoll && room.lastRoll.turnNumber > this.lastPolledRollTurn) {
+          this.lastPolledRollTurn = room.lastRoll.turnNumber;
+          this.syncStore.applyPolledRoll(
+            room.lastRoll.turnNumber,
+            room.lastRoll.outcome,
+            room.lastRoll.pageNumber
+          );
+          const syntheticReveal: WSServerMessage = {
+            type: "ROLL_REVEALED",
+            turnNumber: room.lastRoll.turnNumber,
+            outcome: room.lastRoll.outcome,
+            pageNumber: room.lastRoll.pageNumber,
+            seed: "",
+            actorPlayerId: room.lastRoll.actorPlayerId,
+            actorUsername: room.lastRoll.actorUsername,
+            consequenceText: room.lastRoll.consequenceText
+          };
+          for (const listener of this.messageListeners) {
+            try {
+              listener(syntheticReveal);
+            } catch {
+              // Ignore
+            }
+          }
+        }
+
         if (room.match) {
+          const syntheticShotEvents =
+            room.lastShot && room.lastShot.id !== this.lastPolledShotId
+              ? (() => {
+                  this.lastPolledShotId = room.lastShot.id;
+                  return [
+                    {
+                      eventId: room.lastShot.id,
+                      matchId: room.match.matchId,
+                      sequence: room.match.version,
+                      type: "SHOT_ACCEPTED" as const,
+                      actorPlayerId: room.lastShot.shooterPlayerId,
+                      actorUsername: room.lastShot.shooterUsername,
+                      targetPlayerId: room.lastShot.targetPlayerId,
+                      targetUsername: room.lastShot.targetUsername,
+                      cellValue: room.lastShot.targetCellValue,
+                      serverTimestamp: room.lastShot.shotAt
+                    }
+                  ];
+                })()
+              : [];
+
           if (!prevRoom || (prevRoom.phase === "WAITING" && room.phase === "ACTIVE")) {
             await this.handleServerMessage({
               type: "MATCH_STARTED",
               matchState: room.match
             });
-          } else if (!prevMatch || room.match.version > prevMatch.version) {
+          } else if (!prevMatch || room.match.version > prevMatch.version || syntheticShotEvents.length > 0) {
             await this.handleServerMessage({
               type: "MATCH_STATE_SYNC",
               matchState: room.match,
-              events: []
+              events: syntheticShotEvents
             });
           }
 
@@ -376,7 +490,7 @@ export class WebSocketClient {
     void pollOnce();
     this.httpPollTimer = setInterval(() => {
       void pollOnce();
-    }, 1000);
+    }, 900);
   }
 
   send(message: WSClientMessage): void {
@@ -428,25 +542,52 @@ export class WebSocketClient {
           break;
         }
         case "ROLL_REQUEST": {
-          const rolledTurnNumber =
-            this.syncStore.getState().match?.turn.turnNumber ?? 1;
           const res = await apiClient.rollTurn(
             message.roomCode,
             message.expectedStateVersion,
             message.correlationId
           );
-          if (this.syncStore.getState().activeCommitment?.turnNumber === rolledTurnNumber) {
+          this.lastPolledRollTurn = res.rollResult.turnNumber;
+          if (
+            this.syncStore.getState().activeCommitment?.turnNumber === res.rollResult.turnNumber
+          ) {
             await this.handleServerMessage({
               type: "ROLL_REVEALED",
-              turnNumber: rolledTurnNumber,
-              outcome: res.rollOutcome,
-              pageNumber: res.pageNumber,
-              seed: res.seed
+              turnNumber: res.rollResult.turnNumber,
+              outcome: res.rollResult.outcome,
+              pageNumber: res.rollResult.pageNumber,
+              seed: res.rollResult.seed,
+              actorPlayerId: res.lastRoll?.actorPlayerId,
+              actorUsername: res.lastRoll?.actorUsername,
+              consequenceText: res.lastRoll?.consequenceText
             });
+          } else {
+            this.syncStore.applyPolledRoll(
+              res.rollResult.turnNumber,
+              res.rollResult.outcome,
+              res.rollResult.pageNumber
+            );
+            const fallbackReveal: WSServerMessage = {
+              type: "ROLL_REVEALED",
+              turnNumber: res.rollResult.turnNumber,
+              outcome: res.rollResult.outcome,
+              pageNumber: res.rollResult.pageNumber,
+              seed: res.rollResult.seed,
+              actorPlayerId: res.lastRoll?.actorPlayerId,
+              actorUsername: res.lastRoll?.actorUsername,
+              consequenceText: res.lastRoll?.consequenceText
+            };
+            for (const listener of this.messageListeners) {
+              try {
+                listener(fallbackReveal);
+              } catch {
+                // Ignore
+              }
+            }
           }
           await this.handleServerMessage({
             type: "MATCH_STATE_SYNC",
-            matchState: res.matchState,
+            matchState: res.state,
             events: res.events
           });
           if (res.nextCommitment) {
@@ -454,6 +595,18 @@ export class WebSocketClient {
               type: "ROLL_COMMITMENT",
               turnNumber: res.nextCommitment.turnNumber,
               commitmentHash: res.nextCommitment.commitmentHash
+            });
+          }
+          if (
+            res.state.phase === "COMPLETED" &&
+            res.state.winnerPlayerId &&
+            res.state.winReason
+          ) {
+            await this.handleServerMessage({
+              type: "MATCH_COMPLETED",
+              matchState: res.state,
+              winnerPlayerId: res.state.winnerPlayerId,
+              winReason: res.state.winReason
             });
           }
           break;
@@ -466,21 +619,59 @@ export class WebSocketClient {
             message.expectedStateVersion,
             message.correlationId
           );
+          if (res.lastShot) {
+            this.lastPolledShotId = res.lastShot.id;
+          }
           await this.handleServerMessage({
             type: "MATCH_STATE_SYNC",
-            matchState: res.matchState,
+            matchState: res.state,
             events: res.events
           });
+          if (res.nextCommitment) {
+            await this.handleServerMessage({
+              type: "ROLL_COMMITMENT",
+              turnNumber: res.nextCommitment.turnNumber,
+              commitmentHash: res.nextCommitment.commitmentHash
+            });
+          }
           if (
-            res.matchState.phase === "COMPLETED" &&
-            res.matchState.winnerPlayerId &&
-            res.matchState.winReason
+            res.state.phase === "COMPLETED" &&
+            res.state.winnerPlayerId &&
+            res.state.winReason
           ) {
             await this.handleServerMessage({
               type: "MATCH_COMPLETED",
-              matchState: res.matchState,
-              winnerPlayerId: res.matchState.winnerPlayerId,
-              winReason: res.matchState.winReason
+              matchState: res.state,
+              winnerPlayerId: res.state.winnerPlayerId,
+              winReason: res.state.winReason
+            });
+          }
+          break;
+        }
+        case "SEND_CHAT_MESSAGE": {
+          const { chat } = await apiClient.sendChat(message.roomCode, message.message);
+          await this.handleServerMessage({
+            type: "CHAT_BROADCAST",
+            id: chat.id,
+            senderUserId: chat.senderUserId,
+            senderUsername: chat.senderUsername,
+            role: chat.role,
+            message: chat.message,
+            timestamp: chat.timestamp
+          });
+          break;
+        }
+        case "SEND_EMOJI_REACTION": {
+          const { emoji } = await apiClient.sendEmoji(message.roomCode, message.emojiId);
+          if (emoji) {
+            this.seenEmojiIds.add(emoji.id);
+            await this.handleServerMessage({
+              type: "EMOJI_BROADCAST",
+              id: emoji.id,
+              senderUserId: emoji.senderUserId,
+              senderUsername: emoji.senderUsername,
+              emojiId: emoji.emojiId,
+              timestamp: emoji.timestamp
             });
           }
           break;
@@ -489,6 +680,13 @@ export class WebSocketClient {
           break;
       }
     } catch (err) {
+      if (err instanceof ApiError) {
+        await this.handleServerMessage({
+          type: "ERROR",
+          code: err.code,
+          message: err.message
+        });
+      }
       this.emitError(err);
     }
   }
@@ -660,9 +858,65 @@ export class WebSocketClient {
     }, delayMs);
   }
 
+  private startWatchdog(): void {
+    this.stopWatchdog();
+    this.watchdogTimer = setInterval(() => {
+      if (this.httpFallbackActive || this.manualDisconnect || !this.ws) return;
+      if (Date.now() - this.lastServerTrafficAt > 40_000) {
+        // Silent drop detected: force close so auto-reconnect kicks in
+        try {
+          this.ws.close(4000, "Client heartbeat timeout");
+        } catch {
+          // Ignore
+        }
+      }
+    }, 10_000);
+  }
+
+  private stopWatchdog(): void {
+    if (this.watchdogTimer) {
+      clearInterval(this.watchdogTimer);
+      this.watchdogTimer = null;
+    }
+  }
+
+  reconnectNow(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.manualDisconnect = false;
+    this.httpFallbackActive = false;
+    this.consecutiveWsFailures = 0;
+    this.reconnectAttempts = 0;
+    if (this.ws) {
+      try {
+        this.ws.close(1000, "Manual reconnect");
+      } catch {
+        // Ignore
+      }
+      this.ws = null;
+    }
+    this.connected = false;
+    this.connect()
+      .then(() => {
+        const state = this.syncStore.getState();
+        const code = state.room?.roomCode ?? this.activeRoomCode;
+        if (code && state.room && (state.room.phase === "ACTIVE" || state.room.phase === "PAUSED")) {
+          this.reconnectMatch(code, state.match?.version ?? 0);
+        } else if (code) {
+          this.joinRoom(code);
+        }
+      })
+      .catch(() => {
+        // Handled by onclose / autoReconnect
+      });
+  }
+
   disconnect(): void {
     this.manualDisconnect = true;
     this.activeRoomCode = null;
+    this.stopWatchdog();
     if (this.httpPollTimer) {
       clearInterval(this.httpPollTimer);
       this.httpPollTimer = null;
